@@ -3,7 +3,7 @@ import { MontessoriBlock, GameState, PlaceValue } from '../domain/types';
 import { LocalStorageRepository } from '../data/LocalStorageRepository';
 
 const repo = new LocalStorageRepository();
-const USER_ID = 'daughter_user_1'; // נחליף ב-ID אמיתי כשיהיה שרת
+const USER_ID = 'daughter_user_1'; // Replace with a real user ID when migrating to .NET backend
 
 interface GameStore extends GameState {
   // Actions
@@ -27,19 +27,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (savedProgress) {
       set({ ...savedProgress, interactionState: 'playing' });
     } else {
-      get().resetBoard(); // הגרלת מספר ראשון
+      get().resetBoard(); // Initial target generation
     }
   },
 
   addBlock: (type: PlaceValue) => {
     const newBlock: MontessoriBlock = {
-      id: Math.random().toString(36).substr(2, 9),
+      id: Math.random().toString(36).substring(2, 11),
       type: type,
       value: type === 'ten' ? 10 : 1,
     };
+    
     set((state) => ({
       placedBlocks: [...state.placedBlocks, newBlock],
-      interactionState: 'playing' // איפוס מצב שגיאה אם היא מוסיפה בלוק
+      interactionState: 'playing' // Clear error state when the user tries to fix the board
     }));
   },
 
@@ -50,9 +51,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   resetBoard: () => {
-    // לוגיקה אדפטיבית בסיסית: ככל שהיא מצליחה יותר, המספרים גדלים
+    // Adaptive logic: increase difficulty based on consecutive successes
     const successes = get().consecutiveSuccesses;
-    const maxRange = successes > 5 ? 100 : 20; // קפיצה מ-20 ל-100 אחרי 5 הצלחות
+    const maxRange = successes > 5 ? 100 : 20; 
     const newTarget = Math.floor(Math.random() * (maxRange - 1)) + 1;
 
     set({
@@ -67,23 +68,24 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const currentSum = state.placedBlocks.reduce((acc, b) => acc + b.value, 0);
 
     if (currentSum === state.currentTargetNumber) {
-      // הצלחה!
+      // Success criteria met
       const newSuccessCount = state.consecutiveSuccesses + 1;
+      
       set({
         interactionState: 'success',
         consecutiveSuccesses: newSuccessCount,
         coinsCollected: state.coinsCollected + 10
       });
       
-      // שמירה ל-LocalStorage
+      // Persist progress
       repo.saveUserProgress(USER_ID, get());
       
-      // איפוס לוח אחרי השהייה (כדי שתוכל לראות את ה"קסם")
+      // Reset board after a delay to allow the success animation to play
       setTimeout(() => get().resetBoard(), 3000);
     } else {
-      // טעות - מימוש "בקרת טעות" מונטסורית
+      // Validation failed - implement Montessori control of error
+      // We change the state to error but keep the blocks so the user can correct the mistake
       set({ interactionState: 'error' });
-      // אנחנו לא מאפסים את הלוח, נותנים לה לתקן
     }
   }
 }));
