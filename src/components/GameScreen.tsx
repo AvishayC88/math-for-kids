@@ -3,7 +3,6 @@ import { DndContext, DragEndEvent, DragOverlay, DragStartEvent } from '@dnd-kit/
 import { useGameStore } from '../store/useGameStore';
 import { PlaceValue } from '../domain/types';
 import { DropZone } from './DropZone';
-import { Toolbox } from './Toolbox';
 import { MontessoriBlock } from './MontessoriBlock';
 
 export function GameScreen() {
@@ -13,6 +12,12 @@ export function GameScreen() {
   // Derived state for the zones
   const unitsBlocks = store.placedBlocks.filter(b => b.type === 'unit');
   const tensBlocks = store.placedBlocks.filter(b => b.type === 'ten');
+  const hundredsBlocks = store.placedBlocks.filter(b => b.type === 'hundred');
+  const thousandsBlocks = store.placedBlocks.filter(b => b.type === 'thousand');
+
+  // Adaptive layout logic based on the target number
+  const showHundreds = store.currentTargetNumber >= 100;
+  const showThousands = store.currentTargetNumber >= 1000;
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
@@ -29,14 +34,14 @@ export function GameScreen() {
     const droppedType = active.data.current?.type as PlaceValue;
     const targetAccepts = over.data.current?.accepts as PlaceValue;
 
-    // Strict Montessori rule: Units only to unit zone, tens only to tens zone
+    // Strict Montessori rule: Types must match their designated zones
     if (droppedType === targetAccepts) {
       store.addBlock(droppedType);
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto pt-8 flex flex-col h-screen font-sans" dir="rtl">
+    <div className="max-w-6xl mx-auto pt-8 flex flex-col h-screen font-sans" dir="rtl">
       {/* Header & Control of Error */}
       <div className="text-center pb-6">
         <h1 className="text-5xl font-extrabold text-gray-800 mb-4">
@@ -47,7 +52,7 @@ export function GameScreen() {
         {store.interactionState === 'error' && (
           <div className="mt-4 p-4 max-w-lg mx-auto bg-orange-100 text-orange-800 rounded-xl border border-orange-200 shadow-sm animate-bounce">
             <span className="font-bold text-xl">
-              שמנו {tensBlocks.length} עשרות ו-{unitsBlocks.length} אחדות. זה {tensBlocks.length * 10 + unitsBlocks.length}. אנחנו צריכים {store.currentTargetNumber}.
+              המספר על הלוח לא מתאים. בואי נספור שוב את הבלוקים ששמת.
             </span>
           </div>
         )}
@@ -62,12 +67,43 @@ export function GameScreen() {
 
       {/* Workspace Context */}
       <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <div className="flex gap-6 flex-1 px-4">
+        {/* Adaptive Grid Layout */}
+        <div className="flex gap-4 flex-1 px-4 overflow-x-auto">
           <DropZone id="zone-unit" type="unit" title="אחדות (ירוק)" blocks={unitsBlocks} />
           <DropZone id="zone-ten" type="ten" title="עשרות (כחול)" blocks={tensBlocks} />
+          
+          {showHundreds && (
+            <DropZone id="zone-hundred" type="hundred" title="מאות (אדום)" blocks={hundredsBlocks} />
+          )}
+          
+          {showThousands && (
+            <DropZone id="zone-thousand" type="thousand" title="אלפים (ירוק)" blocks={thousandsBlocks} />
+          )}
         </div>
 
-        <Toolbox />
+        {/* Adaptive Toolbox */}
+        <div className="w-full bg-gray-100 p-6 rounded-t-3xl shadow-inner border-t-4 border-gray-200 mt-8 flex justify-center gap-12 sm:gap-24 items-end overflow-x-auto">
+          {showThousands && (
+            <div className="flex flex-col items-center gap-3">
+              <MontessoriBlock id="src-thousand" type="thousand" isDraggable />
+              <span className="text-lg font-bold text-gray-500">אלפים</span>
+            </div>
+          )}
+          {showHundreds && (
+            <div className="flex flex-col items-center gap-3">
+              <MontessoriBlock id="src-hundred" type="hundred" isDraggable />
+              <span className="text-lg font-bold text-gray-500">מאות</span>
+            </div>
+          )}
+          <div className="flex flex-col items-center gap-3">
+            <MontessoriBlock id="src-ten" type="ten" isDraggable />
+            <span className="text-lg font-bold text-gray-500">עשרות</span>
+          </div>
+          <div className="flex flex-col items-center gap-3">
+            <MontessoriBlock id="src-unit" type="unit" isDraggable />
+            <span className="text-lg font-bold text-gray-500">אחדות</span>
+          </div>
+        </div>
 
         {/* The DragOverlay is critical for 60fps animations during drag */}
         <DragOverlay>
