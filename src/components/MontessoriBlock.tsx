@@ -5,7 +5,6 @@ interface Props {
   id: string;
   type: PlaceValue;
   isDraggable?: boolean;
-  // Overlay mode is used when the item is currently being dragged
   isOverlay?: boolean;
 }
 
@@ -16,15 +15,44 @@ export function MontessoriBlock({ id, type, isDraggable = false, isOverlay = fal
     disabled: !isDraggable,
   });
 
-  // Visual mapping for Montessori principles
-  const baseClasses = "rounded-sm shadow-md transition-transform flex items-center justify-center font-bold text-white text-xs";
-  const typeClasses = type === 'ten' 
-    ? "bg-blue-500 w-8 h-32 border border-blue-600" 
-    : "bg-green-500 w-8 h-8 border border-green-600";
+  const baseClasses = "rounded-sm shadow-md transition-transform flex items-center justify-center font-bold text-white relative overflow-hidden";
   
-  // Hide the original block while dragging to leave a "ghost" or empty space
+  // Adaptive sizing and coloring based on place value
+  let typeClasses = "";
+  let innerContent = null;
+
+  switch (type) {
+    case 'unit':
+      typeClasses = "bg-green-500 w-8 h-8 border border-green-600 text-xs";
+      break;
+    case 'ten':
+      typeClasses = "bg-blue-500 w-8 h-32 border border-blue-600 text-xs";
+      innerContent = [...Array(9)].map((_, i) => (
+        <div key={i} className="w-full border-b border-blue-400 opacity-50" />
+      ));
+      break;
+    case 'hundred':
+      // 100-square: Red flat square with a grid pattern
+      typeClasses = "bg-red-500 w-32 h-32 border border-red-600";
+      innerContent = (
+        <div className="absolute inset-0 grid grid-cols-10 grid-rows-10 opacity-30 pointer-events-none">
+          {[...Array(100)].map((_, i) => (
+            <div key={i} className="border-[0.5px] border-red-800" />
+          ))}
+        </div>
+      );
+      break;
+    case 'thousand':
+      // 1000-cube: Large distinct green square to simulate the physical cube
+      typeClasses = "bg-emerald-600 w-40 h-40 border-2 border-emerald-800 shadow-xl";
+      innerContent = (
+        <div className="text-emerald-800 opacity-20 text-4xl font-black">1000</div>
+      );
+      break;
+  }
+  
   const opacity = isDragging && !isOverlay ? "opacity-0" : "opacity-100";
-  const scale = isOverlay ? "scale-110 shadow-xl cursor-grabbing z-50" : (isDraggable ? "cursor-grab hover:scale-105" : "");
+  const scale = isOverlay ? "scale-110 shadow-2xl cursor-grabbing z-50" : (isDraggable ? "cursor-grab hover:scale-105" : "");
 
   return (
     <div
@@ -33,13 +61,10 @@ export function MontessoriBlock({ id, type, isDraggable = false, isOverlay = fal
       {...attributes}
       className={`${baseClasses} ${typeClasses} ${opacity} ${scale}`}
     >
-      {type === 'ten' && (
-        <div className="flex flex-col h-full w-full justify-between py-1">
-          {/* Create 10 lines to simulate beads in a ten-bar */}
-          {[...Array(9)].map((_, i) => (
-            <div key={i} className="w-full border-b border-blue-400 opacity-50" />
-          ))}
-        </div>
+      {type === 'ten' ? (
+        <div className="flex flex-col h-full w-full justify-between py-1">{innerContent}</div>
+      ) : (
+        innerContent
       )}
     </div>
   );
