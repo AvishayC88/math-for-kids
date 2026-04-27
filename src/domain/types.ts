@@ -5,6 +5,7 @@ export interface MontessoriBlock {
   id: string;
   type: PlaceValue;
   value: number; // 1, 10, 100, or 1000
+  feedbackMessage: string | null;
 }
 
 export interface GameState {
