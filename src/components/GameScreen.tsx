@@ -69,15 +69,15 @@ export function GameScreen() {
       <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         {/* Adaptive Grid Layout */}
         <div className="flex gap-4 flex-1 px-4 overflow-x-auto">
-          <DropZone id="zone-unit" type="unit" title="אחדות (ירוק)" blocks={unitsBlocks} />
-          <DropZone id="zone-ten" type="ten" title="עשרות (כחול)" blocks={tensBlocks} />
+          <DropZone id="zone-unit" type="unit" title="אחדות (ירוק)" blocks={unitsBlocks} onRemoveBlock={store.removeBlock} />
+          <DropZone id="zone-ten" type="ten" title="עשרות (כחול)" blocks={tensBlocks} onRemoveBlock={store.removeBlock} />
           
           {showHundreds && (
-            <DropZone id="zone-hundred" type="hundred" title="מאות (אדום)" blocks={hundredsBlocks} />
+            <DropZone id="zone-hundred" type="hundred" title="מאות (אדום)" blocks={hundredsBlocks} onRemoveBlock={store.removeBlock} />
           )}
           
           {showThousands && (
-            <DropZone id="zone-thousand" type="thousand" title="אלפים (ירוק)" blocks={thousandsBlocks} />
+            <DropZone id="zone-thousand" type="thousand" title="אלפים (ירוק)" blocks={thousandsBlocks} onRemoveBlock={store.removeBlock} />
           )}
         </div>
 
