@@ -5,7 +5,6 @@ export interface MontessoriBlock {
   id: string;
   type: PlaceValue;
   value: number; // 1, 10, 100, or 1000
-  feedbackMessage: string | null;
 }
 
 export interface GameState {
@@ -14,6 +13,8 @@ export interface GameState {
   coinsCollected: number;
   consecutiveSuccesses: number;
   interactionState: 'playing' | 'validating' | 'success' | 'error';
+  // Dynamic feedback message from the validation engine
+  feedbackMessage: string | null; 
 }
 
 export interface IProgressRepository {
