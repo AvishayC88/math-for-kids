@@ -49,10 +49,10 @@ export function GameScreen() {
         </h1>
         
         {/* Error Feedback Component */}
-        {store.interactionState === 'error' && (
+        {store.interactionState === 'error' && store.feedbackMessage && (
           <div className="mt-4 p-4 max-w-lg mx-auto bg-orange-100 text-orange-800 rounded-xl border border-orange-200 shadow-sm animate-bounce">
             <span className="font-bold text-xl">
-              המספר על הלוח לא מתאים. בואי נספור שוב את הבלוקים ששמת.
+              {store.feedbackMessage}
             </span>
           </div>
         )}
