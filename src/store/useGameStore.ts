@@ -32,10 +32,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   addBlock: (type: PlaceValue) => {
+    // Determine the numerical value based on the block type
+    let blockValue = 1;
+    if (type === 'thousand') blockValue = 1000;
+    else if (type === 'hundred') blockValue = 100;
+    else if (type === 'ten') blockValue = 10;
+
     const newBlock: MontessoriBlock = {
       id: Math.random().toString(36).substring(2, 11),
       type: type,
-      value: type === 'ten' ? 10 : 1,
+      value: blockValue,
     };
     
     set((state) => ({
@@ -51,9 +57,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   resetBoard: () => {
-    // Adaptive logic: increase difficulty based on consecutive successes
     const successes = get().consecutiveSuccesses;
-    const maxRange = successes > 5 ? 100 : 20; 
+    
+    // Adaptive engine: Expand the number range based on the child's streak
+    let maxRange = 20; // Default starting range
+    
+    if (successes >= 10) {
+      maxRange = 9999; // Enter thousands after 10 consecutive successes
+    } else if (successes >= 5) {
+      maxRange = 999; // Enter hundreds after 5 consecutive successes
+    }
+
     const newTarget = Math.floor(Math.random() * (maxRange - 1)) + 1;
 
     set({
@@ -77,14 +91,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
         coinsCollected: state.coinsCollected + 10
       });
       
-      // Persist progress
+      // Persist progress to local storage
       repo.saveUserProgress(USER_ID, get());
       
       // Reset board after a delay to allow the success animation to play
       setTimeout(() => get().resetBoard(), 3000);
     } else {
       // Validation failed - implement Montessori control of error
-      // We change the state to error but keep the blocks so the user can correct the mistake
+      // Change the state to error but keep the blocks so the user can correct the mistake
       set({ interactionState: 'error' });
     }
   }
