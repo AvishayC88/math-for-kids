@@ -18,37 +18,36 @@ export function GameScreen() {
   const store = useGameStore();
   const [activeDragType, setActiveDragType] = useState<PlaceValue | null>(null);
 
+  /**
+   * ARCHITECT NOTE: The "Silver Bullet" for Mobile Scroll Hijacking.
+   * This non-passive event listener intercepts touch movements BEFORE the browser
+   * decides to scroll the page. If the touch originated on a block, we murder
+   * the scroll event. This allows dnd-kit to traverse its 5px distance constraint 
+   * safely without triggering a 'touchcancel'.
+   */
   useEffect(() => {
-    const originalTouchAction = document.body.style.touchAction;
-    const originalOverscroll = document.body.style.overscrollBehavior;
+    const preventScrollOnDrag = (e: TouchEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest('[data-draggable-block="true"]')) {
+        if (e.cancelable) {
+          e.preventDefault();
+        }
+      }
+    };
 
-    // Lock the global body to prevent bounce effects
-    document.body.style.touchAction = 'pan-x';
-    document.body.style.overscrollBehavior = 'none';
+    document.addEventListener('touchmove', preventScrollOnDrag, { passive: false });
 
     return () => {
-      document.body.style.touchAction = originalTouchAction;
-      document.body.style.overscrollBehavior = originalOverscroll;
+      document.removeEventListener('touchmove', preventScrollOnDrag);
     };
   }, []);
 
-  /**
-   * ARCHITECT NOTE: The definitive mobile fix.
-   * Mouse gets distance constraint (moves instantly).
-   * Touch gets a DELAY constraint (200ms). This captures the block BEFORE movement starts,
-   * completely preventing the browser from triggering native scroll and firing 'touchcancel'.
-   */
   const sensors = useSensors(
     useSensor(MouseSensor, {
-      activationConstraint: {
-        distance: 5,
-      },
+      activationConstraint: { distance: 5 },
     }),
     useSensor(TouchSensor, {
-      activationConstraint: {
-        delay: 200, // Wait 200ms to grab the block (bypasses browser scroll hijacking)
-        tolerance: 5, // Allow slight finger wiggle while holding
-      },
+      activationConstraint: { distance: 5 }, 
     })
   );
 
