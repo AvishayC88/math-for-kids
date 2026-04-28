@@ -23,13 +23,6 @@ export function MontessoriBlock({ id, type, isDraggable = false, isOverlay = fal
     }
   };
 
-  // Prevent browser capturing pointer events initially
-  const handlePointerDown = (e: React.PointerEvent) => {
-    if (isDraggable) {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    }
-  };
-
   const baseClasses = "rounded-sm shadow-md transition-all duration-200 flex items-center justify-center font-bold text-white relative overflow-hidden select-none touch-none";
   
   let typeClasses = "";
@@ -74,8 +67,10 @@ export function MontessoriBlock({ id, type, isDraggable = false, isOverlay = fal
       {...listeners}
       {...attributes}
       onClick={handleClick}
-      onPointerDown={handlePointerDown}
       onContextMenu={(e) => e.preventDefault()}
+      // ARCHITECT NOTE: The critical identifier that tells our global lock 
+      // to kill the browser's scroll engine when this element is touched.
+      data-draggable-block="true"
       className={`${baseClasses} ${typeClasses} ${opacity} ${actionClasses}`}
       style={{
         WebkitTouchCallout: 'none',
