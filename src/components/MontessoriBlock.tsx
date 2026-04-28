@@ -23,8 +23,13 @@ export function MontessoriBlock({ id, type, isDraggable = false, isOverlay = fal
     }
   };
 
-  // Senior Engineer Tip: Use -webkit-user-drag and touch-action to fully 
-  // relinquish control from the browser to our JS logic.
+  // Prevent browser capturing pointer events initially
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (isDraggable) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+  };
+
   const baseClasses = "rounded-sm shadow-md transition-all duration-200 flex items-center justify-center font-bold text-white relative overflow-hidden select-none touch-none";
   
   let typeClasses = "";
@@ -69,7 +74,7 @@ export function MontessoriBlock({ id, type, isDraggable = false, isOverlay = fal
       {...listeners}
       {...attributes}
       onClick={handleClick}
-      // Critical for mobile: prevent native context menu
+      onPointerDown={handlePointerDown}
       onContextMenu={(e) => e.preventDefault()}
       className={`${baseClasses} ${typeClasses} ${opacity} ${actionClasses}`}
       style={{
