@@ -18,24 +18,34 @@ export function GameScreen() {
   const store = useGameStore();
   const [activeDragType, setActiveDragType] = useState<PlaceValue | null>(null);
 
-  // Global lockdown for vertical scrolling to prevent bounce effects on iOS.
-  // pan-x allows horizontal scroll on the toolbox.
+  // Global scroll lockdown
   useEffect(() => {
     const originalTouchAction = document.body.style.touchAction;
     const originalOverscroll = document.body.style.overscrollBehavior;
 
-    document.body.style.touchAction = 'pan-x';
+    document.body.style.touchAction = 'none'; // Absolutely no panning
     document.body.style.overscrollBehavior = 'none';
+
+    // Intercept native scroll attempts during touch
+    const preventScrollOnDrag = (e: TouchEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest('[data-draggable-block="true"]')) {
+        if (e.cancelable) {
+          e.preventDefault();
+        }
+      }
+    };
+
+    document.addEventListener('touchmove', preventScrollOnDrag, { passive: false });
 
     return () => {
       document.body.style.touchAction = originalTouchAction;
       document.body.style.overscrollBehavior = originalOverscroll;
+      document.removeEventListener('touchmove', preventScrollOnDrag);
     };
   }, []);
 
-  // ARCHITECT NOTE: Sensors without activation constraints.
-  // Dragging begins INSTANTLY upon touch down. This completely bypasses
-  // the iOS/Android scroll engine race condition.
+  // Zero-latency sensors
   const sensors = useSensors(
     useSensor(MouseSensor),
     useSensor(TouchSensor)
@@ -69,23 +79,24 @@ export function GameScreen() {
   };
 
   return (
-    <div className="fixed inset-0 pt-8 flex flex-col font-sans select-none overflow-hidden bg-white" dir="rtl">
+    // Hard constraint to viewport, strictly no overflow anywhere
+    <div className="fixed inset-0 pt-4 flex flex-col font-sans select-none overflow-hidden bg-white" dir="rtl">
       
-      <div className="flex-1 flex flex-col max-w-6xl mx-auto w-full overflow-hidden">
+      <div className="flex-1 flex flex-col max-w-6xl mx-auto w-full h-full overflow-hidden">
         
-        <div className="text-center pb-6 shrink-0 px-4">
-          <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-800 mb-4">
+        <div className="text-center pb-2 sm:pb-6 shrink-0 px-2">
+          <h1 className="text-2xl sm:text-5xl font-extrabold text-gray-800 mb-2">
             בני את המספר: <span className="text-purple-600">{store.currentTargetNumber}</span>
           </h1>
           
           {store.interactionState === 'error' && store.feedbackMessage && (
-            <div className="mt-2 p-3 sm:p-4 max-w-lg mx-auto bg-orange-100 text-orange-800 rounded-xl border border-orange-200 shadow-sm animate-bounce">
-              <span className="font-bold text-lg sm:text-xl">{store.feedbackMessage}</span>
+            <div className="mt-1 p-2 sm:p-4 max-w-lg mx-auto bg-orange-100 text-orange-800 rounded-xl border border-orange-200 shadow-sm animate-bounce">
+              <span className="font-bold text-sm sm:text-xl">{store.feedbackMessage}</span>
             </div>
           )}
 
           {store.interactionState === 'success' && (
-            <div className="mt-2 p-3 sm:p-4 max-w-lg mx-auto bg-green-100 text-green-800 rounded-xl shadow-sm text-xl sm:text-2xl font-bold">
+            <div className="mt-1 p-2 sm:p-4 max-w-lg mx-auto bg-green-100 text-green-800 rounded-xl shadow-sm text-sm sm:text-2xl font-bold">
               אלופה! אספת עוד 10 מטבעות! (סה"כ: {store.coinsCollected})
             </div>
           )}
@@ -93,33 +104,35 @@ export function GameScreen() {
 
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           
-          <div className="flex gap-2 sm:gap-4 flex-1 px-2 sm:px-4 overflow-x-auto overflow-y-hidden pb-4">
+          {/* Flex-nowrap ensures all columns stay on one line. No overflow! */}
+          <div className="flex flex-row gap-1 sm:gap-4 flex-1 px-1 sm:px-4 w-full flex-nowrap items-stretch pb-2">
             <DropZone id="zone-unit" type="unit" title="אחדות" blocks={unitsBlocks} onRemoveBlock={store.removeBlock} />
             <DropZone id="zone-ten" type="ten" title="עשרות" blocks={tensBlocks} onRemoveBlock={store.removeBlock} />
             {showHundreds && <DropZone id="zone-hundred" type="hundred" title="מאות" blocks={hundredsBlocks} onRemoveBlock={store.removeBlock} />}
             {showThousands && <DropZone id="zone-thousand" type="thousand" title="אלפים" blocks={thousandsBlocks} onRemoveBlock={store.removeBlock} />}
           </div>
 
-          <div className="w-full bg-gray-100 p-4 sm:p-6 rounded-t-3xl shadow-inner border-t-4 border-gray-200 mt-auto shrink-0 flex justify-center gap-6 sm:gap-24 items-end overflow-x-auto relative z-10">
+          {/* Toolbox: Distributed evenly across the width, strict flex-nowrap */}
+          <div className="w-full bg-gray-100 p-3 sm:p-6 rounded-t-3xl shadow-inner border-t-4 border-gray-200 mt-auto shrink-0 flex flex-row justify-around items-end relative z-10 flex-nowrap">
             {showThousands && (
-              <div className="flex flex-col items-center gap-2">
+              <div className="flex flex-col items-center gap-1 sm:gap-2">
                 <MontessoriBlock id="src-thousand" type="thousand" isDraggable />
-                <span className="text-sm sm:text-lg font-bold text-gray-500">אלפים</span>
+                <span className="text-[10px] sm:text-lg font-bold text-gray-500">אלפים</span>
               </div>
             )}
             {showHundreds && (
-              <div className="flex flex-col items-center gap-2">
+              <div className="flex flex-col items-center gap-1 sm:gap-2">
                 <MontessoriBlock id="src-hundred" type="hundred" isDraggable />
-                <span className="text-sm sm:text-lg font-bold text-gray-500">מאות</span>
+                <span className="text-[10px] sm:text-lg font-bold text-gray-500">מאות</span>
               </div>
             )}
-            <div className="flex flex-col items-center gap-2">
+            <div className="flex flex-col items-center gap-1 sm:gap-2">
               <MontessoriBlock id="src-ten" type="ten" isDraggable />
-              <span className="text-sm sm:text-lg font-bold text-gray-500">עשרות</span>
+              <span className="text-[10px] sm:text-lg font-bold text-gray-500">עשרות</span>
             </div>
-            <div className="flex flex-col items-center gap-2">
+            <div className="flex flex-col items-center gap-1 sm:gap-2">
               <MontessoriBlock id="src-unit" type="unit" isDraggable />
-              <span className="text-sm sm:text-lg font-bold text-gray-500">אחדות</span>
+              <span className="text-[10px] sm:text-lg font-bold text-gray-500">אחדות</span>
             </div>
           </div>
 
@@ -128,11 +141,11 @@ export function GameScreen() {
           </DragOverlay>
         </DndContext>
 
-        <div className="bg-gray-100 pb-6 pt-2 shrink-0 flex justify-center w-full relative z-20">
+        <div className="bg-gray-100 pb-4 pt-1 sm:pt-2 shrink-0 flex justify-center w-full relative z-20">
           <button 
             onClick={store.checkAnswer}
             disabled={store.placedBlocks.length === 0}
-            className="py-3 sm:py-4 px-12 sm:px-16 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white font-bold text-2xl sm:text-3xl rounded-full shadow-lg transition-transform active:scale-95"
+            className="py-2 sm:py-4 px-8 sm:px-16 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white font-bold text-xl sm:text-3xl rounded-full shadow-lg transition-transform active:scale-95"
           >
             בדוק אותי!
           </button>
