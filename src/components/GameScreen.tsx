@@ -6,7 +6,8 @@ import {
   DragStartEvent,
   useSensor,
   useSensors,
-  PointerSensor
+  PointerSensor,
+  TouchSensor
 } from '@dnd-kit/core';
 import { useGameStore } from '../store/useGameStore';
 import { PlaceValue } from '../domain/types';
@@ -18,14 +19,21 @@ export function GameScreen() {
   const [activeDragType, setActiveDragType] = useState<PlaceValue | null>(null);
 
   /**
-   * ARCHITECT NOTE: Unified Pointer Strategy.
-   * By using ONLY PointerSensor with a small distance constraint, we bypass 
-   * many mobile browser conflicts while still allowing Taps to work.
+   * ARCHITECT NOTE: The ultimate mobile sensor configuration.
+   * We use BOTH Pointer and Touch sensors. 
+   * Crucially, the TouchSensor uses a 'distance' constraint instead of 'delay'.
+   * This allows tap-to-delete to work (since taps move < 5px) while instantly 
+   * locking the screen from scrolling as soon as a 5px drag is detected.
    */
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 5, // A tiny move is enough to start drag, making it feel responsive.
+        distance: 5,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        distance: 5, // The magic bullet: no delay, just wait for 5px of movement.
       },
     })
   );
@@ -58,7 +66,8 @@ export function GameScreen() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto pt-8 flex flex-col h-screen font-sans select-none overflow-hidden" dir="rtl">
+    // Added overscroll-none to prevent iOS rubber-banding effect
+    <div className="max-w-6xl mx-auto pt-8 flex flex-col h-screen font-sans select-none overflow-hidden overscroll-none" dir="rtl">
       <div className="text-center pb-6">
         <h1 className="text-5xl font-extrabold text-gray-800 mb-4">
           בני את המספר: <span className="text-purple-600">{store.currentTargetNumber}</span>
@@ -117,7 +126,7 @@ export function GameScreen() {
         <button 
           onClick={store.checkAnswer}
           disabled={store.placedBlocks.length === 0}
-          className="py-4 px-16 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white font-bold text-3xl rounded-full shadow-lg transition-transform active:scale-95"
+          className="py-4 px-16 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white font-bold text-3xl rounded-full shadow-lg transition-transform active:scale-95 z-50"
         >
           בדוק אותי!
         </button>
