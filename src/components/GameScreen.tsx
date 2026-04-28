@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   DndContext, 
   DragEndEvent, 
@@ -18,13 +18,23 @@ export function GameScreen() {
   const store = useGameStore();
   const [activeDragType, setActiveDragType] = useState<PlaceValue | null>(null);
 
-  /**
-   * ARCHITECT NOTE: The ultimate mobile sensor configuration.
-   * We use BOTH Pointer and Touch sensors. 
-   * Crucially, the TouchSensor uses a 'distance' constraint instead of 'delay'.
-   * This allows tap-to-delete to work (since taps move < 5px) while instantly 
-   * locking the screen from scrolling as soon as a 5px drag is detected.
-   */
+  // Dynamic Touch Lock: Actively prevent native scrolling during an active drag session
+  useEffect(() => {
+    const preventNativeScroll = (e: TouchEvent) => {
+      e.preventDefault();
+    };
+
+    if (activeDragType) {
+      // The { passive: false } flag is mandatory to allow preventDefault() inside touchmove
+      document.addEventListener('touchmove', preventNativeScroll, { passive: false });
+    }
+
+    return () => {
+      document.removeEventListener('touchmove', preventNativeScroll);
+    };
+  }, [activeDragType]);
+
+  // Mobile Sensor Configuration: Allow tap-to-delete, but lock for drag on 5px movement
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -33,7 +43,7 @@ export function GameScreen() {
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        distance: 5, // The magic bullet: no delay, just wait for 5px of movement.
+        distance: 5, 
       },
     })
   );
@@ -66,7 +76,6 @@ export function GameScreen() {
   };
 
   return (
-    // Added overscroll-none to prevent iOS rubber-banding effect
     <div className="max-w-6xl mx-auto pt-8 flex flex-col h-screen font-sans select-none overflow-hidden overscroll-none" dir="rtl">
       <div className="text-center pb-6">
         <h1 className="text-5xl font-extrabold text-gray-800 mb-4">
