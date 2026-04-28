@@ -6,7 +6,7 @@ import {
   DragStartEvent,
   useSensor,
   useSensors,
-  PointerSensor,
+  MouseSensor,
   TouchSensor
 } from '@dnd-kit/core';
 import { useGameStore } from '../store/useGameStore';
@@ -18,25 +18,33 @@ export function GameScreen() {
   const store = useGameStore();
   const [activeDragType, setActiveDragType] = useState<PlaceValue | null>(null);
 
-  // Dynamic Touch Lock: Actively prevent native scrolling during an active drag session
+  /**
+   * ARCHITECT NOTE: The Nuclear Option for Mobile Scroll Hijacking.
+   * Since this is a single-screen game, we completely disable the browser's 
+   * native vertical scrolling and pull-to-refresh at the body level.
+   * 'pan-x' allows horizontal scrolling (for our toolbox) but strictly forbids vertical.
+   */
   useEffect(() => {
-    const preventNativeScroll = (e: TouchEvent) => {
-      e.preventDefault();
-    };
+    const originalTouchAction = document.body.style.touchAction;
+    const originalOverscroll = document.body.style.overscrollBehavior;
 
-    if (activeDragType) {
-      // The { passive: false } flag is mandatory to allow preventDefault() inside touchmove
-      document.addEventListener('touchmove', preventNativeScroll, { passive: false });
-    }
+    // Lock the global body
+    document.body.style.touchAction = 'pan-x';
+    document.body.style.overscrollBehavior = 'none';
 
     return () => {
-      document.removeEventListener('touchmove', preventNativeScroll);
+      // Cleanup on unmount
+      document.body.style.touchAction = originalTouchAction;
+      document.body.style.overscrollBehavior = originalOverscroll;
     };
-  }, [activeDragType]);
+  }, []);
 
-  // Mobile Sensor Configuration: Allow tap-to-delete, but lock for drag on 5px movement
+  /**
+   * By explicitly using MouseSensor and TouchSensor instead of PointerSensor,
+   * we bypass bugs where iOS Safari confuses pointers with scroll actions.
+   */
   const sensors = useSensors(
-    useSensor(PointerSensor, {
+    useSensor(MouseSensor, {
       activationConstraint: {
         distance: 5,
       },
@@ -76,69 +84,81 @@ export function GameScreen() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto pt-8 flex flex-col h-screen font-sans select-none overflow-hidden overscroll-none" dir="rtl">
-      <div className="text-center pb-6">
-        <h1 className="text-5xl font-extrabold text-gray-800 mb-4">
-          בני את המספר: <span className="text-purple-600">{store.currentTargetNumber}</span>
-        </h1>
+    // 'fixed inset-0' ensures the wrapper absolutely cannot expand beyond the viewport
+    <div className="fixed inset-0 pt-8 flex flex-col font-sans select-none overflow-hidden bg-white" dir="rtl">
+      
+      {/* Scrollable Container for the actual game content */}
+      <div className="flex-1 flex flex-col max-w-6xl mx-auto w-full overflow-hidden">
         
-        {store.interactionState === 'error' && store.feedbackMessage && (
-          <div className="mt-4 p-4 max-w-lg mx-auto bg-orange-100 text-orange-800 rounded-xl border border-orange-200 shadow-sm animate-bounce">
-            <span className="font-bold text-xl">{store.feedbackMessage}</span>
-          </div>
-        )}
-
-        {store.interactionState === 'success' && (
-          <div className="mt-4 p-4 max-w-lg mx-auto bg-green-100 text-green-800 rounded-xl shadow-sm text-2xl font-bold">
-            אלופה! אספת עוד 10 מטבעות! (סה"כ: {store.coinsCollected})
-          </div>
-        )}
-      </div>
-
-      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <div className="flex gap-2 sm:gap-4 flex-1 px-2 sm:px-4 overflow-x-auto min-h-[450px]">
-          <DropZone id="zone-unit" type="unit" title="אחדות" blocks={unitsBlocks} onRemoveBlock={store.removeBlock} />
-          <DropZone id="zone-ten" type="ten" title="עשרות" blocks={tensBlocks} onRemoveBlock={store.removeBlock} />
-          {showHundreds && <DropZone id="zone-hundred" type="hundred" title="מאות" blocks={hundredsBlocks} onRemoveBlock={store.removeBlock} />}
-          {showThousands && <DropZone id="zone-thousand" type="thousand" title="אלפים" blocks={thousandsBlocks} onRemoveBlock={store.removeBlock} />}
-        </div>
-
-        <div className="w-full bg-gray-100 p-6 rounded-t-3xl shadow-inner border-t-4 border-gray-200 mt-8 flex justify-center gap-4 sm:gap-24 items-end overflow-x-auto">
-          {showThousands && (
-            <div className="flex flex-col items-center gap-3">
-              <MontessoriBlock id="src-thousand" type="thousand" isDraggable />
-              <span className="text-sm sm:text-lg font-bold text-gray-500">אלפים</span>
+        {/* Header Section */}
+        <div className="text-center pb-6 shrink-0 px-4">
+          <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-800 mb-4">
+            בני את המספר: <span className="text-purple-600">{store.currentTargetNumber}</span>
+          </h1>
+          
+          {store.interactionState === 'error' && store.feedbackMessage && (
+            <div className="mt-2 p-3 sm:p-4 max-w-lg mx-auto bg-orange-100 text-orange-800 rounded-xl border border-orange-200 shadow-sm animate-bounce">
+              <span className="font-bold text-lg sm:text-xl">{store.feedbackMessage}</span>
             </div>
           )}
-          {showHundreds && (
-            <div className="flex flex-col items-center gap-3">
-              <MontessoriBlock id="src-hundred" type="hundred" isDraggable />
-              <span className="text-sm sm:text-lg font-bold text-gray-500">מאות</span>
+
+          {store.interactionState === 'success' && (
+            <div className="mt-2 p-3 sm:p-4 max-w-lg mx-auto bg-green-100 text-green-800 rounded-xl shadow-sm text-xl sm:text-2xl font-bold">
+              אלופה! אספת עוד 10 מטבעות! (סה"כ: {store.coinsCollected})
             </div>
           )}
-          <div className="flex flex-col items-center gap-3">
-            <MontessoriBlock id="src-ten" type="ten" isDraggable />
-            <span className="text-sm sm:text-lg font-bold text-gray-500">עשרות</span>
-          </div>
-          <div className="flex flex-col items-center gap-3">
-            <MontessoriBlock id="src-unit" type="unit" isDraggable />
-            <span className="text-sm sm:text-lg font-bold text-gray-500">אחדות</span>
-          </div>
         </div>
 
-        <DragOverlay dropAnimation={null}>
-          {activeDragType ? <MontessoriBlock id="overlay" type={activeDragType} isOverlay /> : null}
-        </DragOverlay>
-      </DndContext>
+        {/* DndContext handles the drag logic */}
+        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+          
+          {/* Drop Zones Area */}
+          <div className="flex gap-2 sm:gap-4 flex-1 px-2 sm:px-4 overflow-x-auto overflow-y-hidden pb-4">
+            <DropZone id="zone-unit" type="unit" title="אחדות" blocks={unitsBlocks} onRemoveBlock={store.removeBlock} />
+            <DropZone id="zone-ten" type="ten" title="עשרות" blocks={tensBlocks} onRemoveBlock={store.removeBlock} />
+            {showHundreds && <DropZone id="zone-hundred" type="hundred" title="מאות" blocks={hundredsBlocks} onRemoveBlock={store.removeBlock} />}
+            {showThousands && <DropZone id="zone-thousand" type="thousand" title="אלפים" blocks={thousandsBlocks} onRemoveBlock={store.removeBlock} />}
+          </div>
 
-      <div className="bg-gray-100 pb-8 pt-4 flex justify-center">
-        <button 
-          onClick={store.checkAnswer}
-          disabled={store.placedBlocks.length === 0}
-          className="py-4 px-16 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white font-bold text-3xl rounded-full shadow-lg transition-transform active:scale-95 z-50"
-        >
-          בדוק אותי!
-        </button>
+          {/* Toolbox Area */}
+          <div className="w-full bg-gray-100 p-4 sm:p-6 rounded-t-3xl shadow-inner border-t-4 border-gray-200 mt-auto shrink-0 flex justify-center gap-6 sm:gap-24 items-end overflow-x-auto">
+            {showThousands && (
+              <div className="flex flex-col items-center gap-2">
+                <MontessoriBlock id="src-thousand" type="thousand" isDraggable />
+                <span className="text-sm sm:text-lg font-bold text-gray-500">אלפים</span>
+              </div>
+            )}
+            {showHundreds && (
+              <div className="flex flex-col items-center gap-2">
+                <MontessoriBlock id="src-hundred" type="hundred" isDraggable />
+                <span className="text-sm sm:text-lg font-bold text-gray-500">מאות</span>
+              </div>
+            )}
+            <div className="flex flex-col items-center gap-2">
+              <MontessoriBlock id="src-ten" type="ten" isDraggable />
+              <span className="text-sm sm:text-lg font-bold text-gray-500">עשרות</span>
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <MontessoriBlock id="src-unit" type="unit" isDraggable />
+              <span className="text-sm sm:text-lg font-bold text-gray-500">אחדות</span>
+            </div>
+          </div>
+
+          <DragOverlay dropAnimation={null}>
+            {activeDragType ? <MontessoriBlock id="overlay" type={activeDragType} isOverlay /> : null}
+          </DragOverlay>
+        </DndContext>
+
+        {/* Action Button */}
+        <div className="bg-gray-100 pb-6 pt-2 shrink-0 flex justify-center w-full relative z-10">
+          <button 
+            onClick={store.checkAnswer}
+            disabled={store.placedBlocks.length === 0}
+            className="py-3 sm:py-4 px-12 sm:px-16 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white font-bold text-2xl sm:text-3xl rounded-full shadow-lg transition-transform active:scale-95"
+          >
+            בדוק אותי!
+          </button>
+        </div>
       </div>
     </div>
   );
