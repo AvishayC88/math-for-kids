@@ -18,30 +18,25 @@ export function GameScreen() {
   const store = useGameStore();
   const [activeDragType, setActiveDragType] = useState<PlaceValue | null>(null);
 
-  /**
-   * ARCHITECT NOTE: The Nuclear Option for Mobile Scroll Hijacking.
-   * Since this is a single-screen game, we completely disable the browser's 
-   * native vertical scrolling and pull-to-refresh at the body level.
-   * 'pan-x' allows horizontal scrolling (for our toolbox) but strictly forbids vertical.
-   */
   useEffect(() => {
     const originalTouchAction = document.body.style.touchAction;
     const originalOverscroll = document.body.style.overscrollBehavior;
 
-    // Lock the global body
+    // Lock the global body to prevent bounce effects
     document.body.style.touchAction = 'pan-x';
     document.body.style.overscrollBehavior = 'none';
 
     return () => {
-      // Cleanup on unmount
       document.body.style.touchAction = originalTouchAction;
       document.body.style.overscrollBehavior = originalOverscroll;
     };
   }, []);
 
   /**
-   * By explicitly using MouseSensor and TouchSensor instead of PointerSensor,
-   * we bypass bugs where iOS Safari confuses pointers with scroll actions.
+   * ARCHITECT NOTE: The definitive mobile fix.
+   * Mouse gets distance constraint (moves instantly).
+   * Touch gets a DELAY constraint (200ms). This captures the block BEFORE movement starts,
+   * completely preventing the browser from triggering native scroll and firing 'touchcancel'.
    */
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -51,7 +46,8 @@ export function GameScreen() {
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        distance: 5, 
+        delay: 200, // Wait 200ms to grab the block (bypasses browser scroll hijacking)
+        tolerance: 5, // Allow slight finger wiggle while holding
       },
     })
   );
@@ -84,13 +80,10 @@ export function GameScreen() {
   };
 
   return (
-    // 'fixed inset-0' ensures the wrapper absolutely cannot expand beyond the viewport
     <div className="fixed inset-0 pt-8 flex flex-col font-sans select-none overflow-hidden bg-white" dir="rtl">
       
-      {/* Scrollable Container for the actual game content */}
       <div className="flex-1 flex flex-col max-w-6xl mx-auto w-full overflow-hidden">
         
-        {/* Header Section */}
         <div className="text-center pb-6 shrink-0 px-4">
           <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-800 mb-4">
             בני את המספר: <span className="text-purple-600">{store.currentTargetNumber}</span>
@@ -109,10 +102,8 @@ export function GameScreen() {
           )}
         </div>
 
-        {/* DndContext handles the drag logic */}
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           
-          {/* Drop Zones Area */}
           <div className="flex gap-2 sm:gap-4 flex-1 px-2 sm:px-4 overflow-x-auto overflow-y-hidden pb-4">
             <DropZone id="zone-unit" type="unit" title="אחדות" blocks={unitsBlocks} onRemoveBlock={store.removeBlock} />
             <DropZone id="zone-ten" type="ten" title="עשרות" blocks={tensBlocks} onRemoveBlock={store.removeBlock} />
@@ -120,8 +111,7 @@ export function GameScreen() {
             {showThousands && <DropZone id="zone-thousand" type="thousand" title="אלפים" blocks={thousandsBlocks} onRemoveBlock={store.removeBlock} />}
           </div>
 
-          {/* Toolbox Area */}
-          <div className="w-full bg-gray-100 p-4 sm:p-6 rounded-t-3xl shadow-inner border-t-4 border-gray-200 mt-auto shrink-0 flex justify-center gap-6 sm:gap-24 items-end overflow-x-auto">
+          <div className="w-full bg-gray-100 p-4 sm:p-6 rounded-t-3xl shadow-inner border-t-4 border-gray-200 mt-auto shrink-0 flex justify-center gap-6 sm:gap-24 items-end overflow-x-auto relative z-10">
             {showThousands && (
               <div className="flex flex-col items-center gap-2">
                 <MontessoriBlock id="src-thousand" type="thousand" isDraggable />
@@ -149,8 +139,7 @@ export function GameScreen() {
           </DragOverlay>
         </DndContext>
 
-        {/* Action Button */}
-        <div className="bg-gray-100 pb-6 pt-2 shrink-0 flex justify-center w-full relative z-10">
+        <div className="bg-gray-100 pb-6 pt-2 shrink-0 flex justify-center w-full relative z-20">
           <button 
             onClick={store.checkAnswer}
             disabled={store.placedBlocks.length === 0}
