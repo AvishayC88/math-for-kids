@@ -18,37 +18,27 @@ export function GameScreen() {
   const store = useGameStore();
   const [activeDragType, setActiveDragType] = useState<PlaceValue | null>(null);
 
-  /**
-   * ARCHITECT NOTE: The "Silver Bullet" for Mobile Scroll Hijacking.
-   * This non-passive event listener intercepts touch movements BEFORE the browser
-   * decides to scroll the page. If the touch originated on a block, we murder
-   * the scroll event. This allows dnd-kit to traverse its 5px distance constraint 
-   * safely without triggering a 'touchcancel'.
-   */
+  // Global lockdown for vertical scrolling to prevent bounce effects on iOS.
+  // pan-x allows horizontal scroll on the toolbox.
   useEffect(() => {
-    const preventScrollOnDrag = (e: TouchEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (target?.closest('[data-draggable-block="true"]')) {
-        if (e.cancelable) {
-          e.preventDefault();
-        }
-      }
-    };
+    const originalTouchAction = document.body.style.touchAction;
+    const originalOverscroll = document.body.style.overscrollBehavior;
 
-    document.addEventListener('touchmove', preventScrollOnDrag, { passive: false });
+    document.body.style.touchAction = 'pan-x';
+    document.body.style.overscrollBehavior = 'none';
 
     return () => {
-      document.removeEventListener('touchmove', preventScrollOnDrag);
+      document.body.style.touchAction = originalTouchAction;
+      document.body.style.overscrollBehavior = originalOverscroll;
     };
   }, []);
 
+  // ARCHITECT NOTE: Sensors without activation constraints.
+  // Dragging begins INSTANTLY upon touch down. This completely bypasses
+  // the iOS/Android scroll engine race condition.
   const sensors = useSensors(
-    useSensor(MouseSensor, {
-      activationConstraint: { distance: 5 },
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: { distance: 5 }, 
-    })
+    useSensor(MouseSensor),
+    useSensor(TouchSensor)
   );
 
   const unitsBlocks = store.placedBlocks.filter(b => b.type === 'unit');
