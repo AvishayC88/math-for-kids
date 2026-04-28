@@ -16,16 +16,16 @@ export function MontessoriBlock({ id, type, isDraggable = false, isOverlay = fal
     disabled: !isDraggable,
   });
 
-  const handleClick = (e: React.MouseEvent) => {
+  const handleClick = (e: React.MouseEvent | React.TouchEvent) => {
     if (onRemove) {
       e.stopPropagation();
       onRemove();
     }
   };
 
-  // ARCHITECT NOTE: Added 'touch-none' to prevent iOS from capturing 
-  // the touch event for scrolling while we try to drag.
-  const baseClasses = "rounded-sm shadow-md transition-all duration-200 flex items-center justify-center font-bold text-white relative overflow-hidden touch-none";
+  // Senior Engineer Tip: Use -webkit-user-drag and touch-action to fully 
+  // relinquish control from the browser to our JS logic.
+  const baseClasses = "rounded-sm shadow-md transition-all duration-200 flex items-center justify-center font-bold text-white relative overflow-hidden select-none touch-none";
   
   let typeClasses = "";
   let innerContent = null;
@@ -60,8 +60,8 @@ export function MontessoriBlock({ id, type, isDraggable = false, isOverlay = fal
   
   const opacity = isDragging && !isOverlay ? "opacity-0" : "opacity-100";
   const actionClasses = onRemove 
-    ? "cursor-pointer hover:opacity-90 hover:scale-95 hover:ring-2 hover:ring-red-400 active:scale-90" 
-    : (isOverlay ? "scale-110 shadow-2xl cursor-grabbing z-50" : (isDraggable ? "cursor-grab hover:scale-105" : ""));
+    ? "cursor-pointer hover:opacity-90 hover:scale-95 active:scale-90" 
+    : (isOverlay ? "scale-110 shadow-2xl cursor-grabbing z-50" : (isDraggable ? "cursor-grab" : ""));
 
   return (
     <div
@@ -69,7 +69,14 @@ export function MontessoriBlock({ id, type, isDraggable = false, isOverlay = fal
       {...listeners}
       {...attributes}
       onClick={handleClick}
+      // Critical for mobile: prevent native context menu
+      onContextMenu={(e) => e.preventDefault()}
       className={`${baseClasses} ${typeClasses} ${opacity} ${actionClasses}`}
+      style={{
+        WebkitTouchCallout: 'none',
+        WebkitUserSelect: 'none',
+        touchAction: 'none'
+      }}
     >
       {type === 'ten' ? (
         <div className="flex flex-col h-full w-full justify-between py-1 pointer-events-none">{innerContent}</div>
