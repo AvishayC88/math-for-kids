@@ -6,7 +6,6 @@ interface Props {
   type: PlaceValue;
   isDraggable?: boolean;
   isOverlay?: boolean;
-  // Callback for tapping to delete (only available for placed blocks)
   onRemove?: () => void;
 }
 
@@ -17,7 +16,6 @@ export function MontessoriBlock({ id, type, isDraggable = false, isOverlay = fal
     disabled: !isDraggable,
   });
 
-  // Prevent any bubbling if the user taps to delete
   const handleClick = (e: React.MouseEvent) => {
     if (onRemove) {
       e.stopPropagation();
@@ -25,7 +23,9 @@ export function MontessoriBlock({ id, type, isDraggable = false, isOverlay = fal
     }
   };
 
-  const baseClasses = "rounded-sm shadow-md transition-all duration-200 flex items-center justify-center font-bold text-white relative overflow-hidden";
+  // ARCHITECT NOTE: Added 'touch-none' to prevent iOS from capturing 
+  // the touch event for scrolling while we try to drag.
+  const baseClasses = "rounded-sm shadow-md transition-all duration-200 flex items-center justify-center font-bold text-white relative overflow-hidden touch-none";
   
   let typeClasses = "";
   let innerContent = null;
@@ -59,8 +59,6 @@ export function MontessoriBlock({ id, type, isDraggable = false, isOverlay = fal
   }
   
   const opacity = isDragging && !isOverlay ? "opacity-0" : "opacity-100";
-  
-  // Dynamic visual feedback: hover effects for deletion vs grabbing
   const actionClasses = onRemove 
     ? "cursor-pointer hover:opacity-90 hover:scale-95 hover:ring-2 hover:ring-red-400 active:scale-90" 
     : (isOverlay ? "scale-110 shadow-2xl cursor-grabbing z-50" : (isDraggable ? "cursor-grab hover:scale-105" : ""));
