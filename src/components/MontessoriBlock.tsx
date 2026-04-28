@@ -10,16 +10,13 @@ interface Props {
 }
 
 export function MontessoriBlock({ id, type, isDraggable = false, isOverlay = false, onRemove }: Props) {
-  // ARCHITECT NOTE: Zero constraints on sensors means drag starts immediately.
-  // This solves the mobile touchcancel bug completely.
+  // ZERO latency drag. No distance, no delay constraints.
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: id,
     data: { type },
     disabled: !isDraggable,
   });
 
-  // Dedicated remove handler for the 'X' button.
-  // Crucial: We stop propagation on PointerDown so dnd-kit doesn't capture the event and start a drag.
   const handleRemoveClick = (e: React.PointerEvent | React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation();
     if (onRemove) {
@@ -27,8 +24,7 @@ export function MontessoriBlock({ id, type, isDraggable = false, isOverlay = fal
     }
   };
 
-  // Base classes include 'group' to allow child elements (the X button) to react to hover on the parent.
-  const baseClasses = "group rounded-sm shadow-md transition-all duration-200 flex items-center justify-center font-bold text-white relative overflow-hidden select-none touch-none";
+  const baseClasses = "group rounded-sm shadow-md transition-all duration-200 flex items-center justify-center font-bold text-white relative overflow-hidden select-none touch-none shrink-0";
   
   let typeClasses = "";
   let innerContent = null;
@@ -36,18 +32,19 @@ export function MontessoriBlock({ id, type, isDraggable = false, isOverlay = fal
 
   switch (type) {
     case 'unit':
-      typeClasses = "bg-green-500 w-8 h-8 border border-green-600 text-xs";
+      // Responsive sizes: smaller on mobile, normal on sm+ screens
+      typeClasses = "bg-green-500 w-6 h-6 sm:w-8 sm:h-8 border border-green-600 text-[10px] sm:text-xs";
       removeBtnColor = "bg-green-700 text-white";
       break;
     case 'ten':
-      typeClasses = "bg-blue-500 w-8 h-32 border border-blue-600 text-xs";
+      typeClasses = "bg-blue-500 w-6 h-24 sm:w-8 sm:h-32 border border-blue-600 text-xs";
       removeBtnColor = "bg-blue-700 text-white";
       innerContent = [...Array(9)].map((_, i) => (
         <div key={i} className="w-full border-b border-blue-400 opacity-50 pointer-events-none" />
       ));
       break;
     case 'hundred':
-      typeClasses = "bg-red-500 w-32 h-32 border border-red-600";
+      typeClasses = "bg-red-500 w-20 h-20 sm:w-32 sm:h-32 border border-red-600";
       removeBtnColor = "bg-red-700 text-white";
       innerContent = (
         <div className="absolute inset-0 grid grid-cols-10 grid-rows-10 opacity-30 pointer-events-none">
@@ -58,10 +55,10 @@ export function MontessoriBlock({ id, type, isDraggable = false, isOverlay = fal
       );
       break;
     case 'thousand':
-      typeClasses = "bg-emerald-600 w-40 h-40 border-2 border-emerald-800 shadow-xl";
+      typeClasses = "bg-emerald-600 w-24 h-24 sm:w-40 sm:h-40 border-2 border-emerald-800 shadow-xl";
       removeBtnColor = "bg-emerald-800 text-white";
       innerContent = (
-        <div className="text-emerald-800 opacity-20 text-4xl font-black pointer-events-none">1000</div>
+        <div className="text-emerald-800 opacity-20 text-xl sm:text-4xl font-black pointer-events-none">1000</div>
       );
       break;
   }
@@ -75,6 +72,8 @@ export function MontessoriBlock({ id, type, isDraggable = false, isOverlay = fal
       {...listeners}
       {...attributes}
       onContextMenu={(e) => e.preventDefault()}
+      // Identify block for global touch lock
+      data-draggable-block="true"
       className={`${baseClasses} ${typeClasses} ${opacity} ${actionClasses}`}
       style={{
         WebkitTouchCallout: 'none',
@@ -82,11 +81,6 @@ export function MontessoriBlock({ id, type, isDraggable = false, isOverlay = fal
         touchAction: 'none'
       }}
     >
-      {/* The Delete Badge ('X'). 
-        - Default: opacity-100 (visible on mobile).
-        - [@media(hover:hover)]:opacity-0 : Invisible on devices with real mouse.
-        - group-hover:opacity-100 : Becomes visible when hovering the parent block on desktop.
-      */}
       {onRemove && !isOverlay && (
         <button
           onPointerDown={handleRemoveClick}
