@@ -16,7 +16,6 @@ export function DropZone({ id, type, title, blocks, onRemoveBlock }: Props) {
     data: { accepts: type },
   });
 
-  // Dynamic border and background colors based on place value
   let borderColor = '';
   let bgHoverColor = '';
   
@@ -32,10 +31,11 @@ export function DropZone({ id, type, title, blocks, onRemoveBlock }: Props) {
   return (
     <div 
       ref={setNodeRef}
-      className={`flex-1 min-h-[400px] border-4 border-dashed ${borderColor} rounded-xl ${activeBg} transition-colors p-4 flex flex-col items-center`}
+      // Responsive padding and typography. strictly no overflow.
+      className={`flex-1 min-w-0 min-h-[250px] sm:min-h-[400px] border-2 sm:border-4 border-dashed ${borderColor} rounded-xl ${activeBg} transition-colors p-1 sm:p-4 flex flex-col items-center overflow-hidden`}
     >
-      <h2 className="text-2xl font-bold mb-4 text-gray-400">{title}</h2>
-      <div className="flex flex-wrap gap-2 justify-center content-start flex-1 w-full">
+      <h2 className="text-xs sm:text-2xl font-bold mb-2 sm:mb-4 text-gray-400 text-center truncate w-full">{title}</h2>
+      <div className="flex flex-wrap gap-1 sm:gap-2 justify-center content-start flex-1 w-full">
         {blocks.map((block) => (
           <MontessoriBlock 
             key={block.id} 
