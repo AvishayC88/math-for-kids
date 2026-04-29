@@ -2,7 +2,6 @@ import { useState } from 'react';
 import {
   DndContext,
   DragEndEvent,
-  DragMoveEvent,
   DragOverlay,
   DragStartEvent,
   PointerSensor,
@@ -18,12 +17,6 @@ import { MontessoriBlock } from './MontessoriBlock';
 export function GameScreen() {
   const store = useGameStore();
   const [activeDragType, setActiveDragType] = useState<PlaceValue | null>(null);
-  const [debugLog, setDebugLog] = useState<string[]>([]);
-  const [moveCount, setMoveCount] = useState(0);
-
-  const pushLog = (line: string) => {
-    setDebugLog((prev) => [`${new Date().toLocaleTimeString().slice(3)} ${line}`, ...prev].slice(0, 8));
-  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -44,26 +37,19 @@ export function GameScreen() {
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
-    setMoveCount(0);
-    pushLog(`START ${String(active.id)} (${active.data.current?.type})`);
     setActiveDragType(active.data.current?.type);
-  };
-
-  const handleDragMove = (_event: DragMoveEvent) => {
-    setMoveCount((c) => c + 1);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    const droppedType = active.data.current?.type as PlaceValue | undefined;
-    const targetAccepts = over?.data.current?.accepts as PlaceValue | undefined;
-    pushLog(
-      `END over=${over?.id ?? 'null'} drop=${droppedType ?? '?'} accepts=${targetAccepts ?? '?'} moves=${moveCount}`
-    );
     setActiveDragType(null);
 
     if (!over) return;
-    if (droppedType && droppedType === targetAccepts) {
+
+    const droppedType = active.data.current?.type as PlaceValue;
+    const targetAccepts = over.data.current?.accepts as PlaceValue;
+
+    if (droppedType === targetAccepts) {
       store.addBlock(droppedType);
     }
   };
@@ -74,13 +60,6 @@ export function GameScreen() {
       dir="rtl"
     >
       <div className="flex-1 flex flex-col max-w-6xl mx-auto w-full h-full overflow-hidden">
-        <div
-          dir="ltr"
-          className="bg-black text-green-300 text-xs leading-tight font-mono p-2 mx-1 mb-1 rounded shrink-0 whitespace-pre border-2 border-yellow-400"
-        >
-          {`DEBUG v3 | active=${activeDragType ?? '-'} moves=${moveCount}`}
-          {debugLog.length === 0 ? '\n(no events yet)' : debugLog.map((l) => `\n${l}`).join('')}
-        </div>
         <div className="text-center pb-2 sm:pb-6 shrink-0 px-2">
           <h1 className="text-2xl sm:text-5xl font-extrabold text-gray-800 mb-2">
             בני את המספר: <span className="text-purple-600">{store.currentTargetNumber}</span>
@@ -103,7 +82,6 @@ export function GameScreen() {
           sensors={sensors}
           autoScroll={false}
           onDragStart={handleDragStart}
-          onDragMove={handleDragMove}
           onDragEnd={handleDragEnd}
         >
           <div className="flex flex-row gap-1 sm:gap-4 flex-1 px-1 sm:px-4 w-full flex-nowrap items-stretch pb-2">
