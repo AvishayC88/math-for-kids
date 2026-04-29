@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   DndContext,
   DragEndEvent,
+  DragMoveEvent,
   DragOverlay,
   DragStartEvent,
   PointerSensor,
@@ -17,6 +18,12 @@ import { MontessoriBlock } from './MontessoriBlock';
 export function GameScreen() {
   const store = useGameStore();
   const [activeDragType, setActiveDragType] = useState<PlaceValue | null>(null);
+  const [debugLog, setDebugLog] = useState<string[]>([]);
+  const [moveCount, setMoveCount] = useState(0);
+
+  const pushLog = (line: string) => {
+    setDebugLog((prev) => [`${new Date().toLocaleTimeString().slice(3)} ${line}`, ...prev].slice(0, 8));
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -37,19 +44,26 @@ export function GameScreen() {
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
+    setMoveCount(0);
+    pushLog(`START ${String(active.id)} (${active.data.current?.type})`);
     setActiveDragType(active.data.current?.type);
+  };
+
+  const handleDragMove = (_event: DragMoveEvent) => {
+    setMoveCount((c) => c + 1);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+    const droppedType = active.data.current?.type as PlaceValue | undefined;
+    const targetAccepts = over?.data.current?.accepts as PlaceValue | undefined;
+    pushLog(
+      `END over=${over?.id ?? 'null'} drop=${droppedType ?? '?'} accepts=${targetAccepts ?? '?'} moves=${moveCount}`
+    );
     setActiveDragType(null);
 
     if (!over) return;
-
-    const droppedType = active.data.current?.type as PlaceValue;
-    const targetAccepts = over.data.current?.accepts as PlaceValue;
-
-    if (droppedType === targetAccepts) {
+    if (droppedType && droppedType === targetAccepts) {
       store.addBlock(droppedType);
     }
   };
@@ -59,6 +73,13 @@ export function GameScreen() {
       className="h-[100dvh] w-full pt-4 flex flex-col font-sans select-none overflow-hidden bg-white"
       dir="rtl"
     >
+      <div
+        dir="ltr"
+        className="fixed top-0 left-0 right-0 z-[9999] bg-black/80 text-green-300 text-[10px] leading-tight font-mono p-1 pointer-events-none whitespace-pre"
+      >
+        {`dnd | active=${activeDragType ?? '-'} moves=${moveCount}`}
+        {debugLog.map((l, i) => `\n${l}`).join('')}
+      </div>
       <div className="flex-1 flex flex-col max-w-6xl mx-auto w-full h-full overflow-hidden">
         <div className="text-center pb-2 sm:pb-6 shrink-0 px-2">
           <h1 className="text-2xl sm:text-5xl font-extrabold text-gray-800 mb-2">
@@ -78,7 +99,13 @@ export function GameScreen() {
           )}
         </div>
 
-        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        <DndContext
+          sensors={sensors}
+          autoScroll={false}
+          onDragStart={handleDragStart}
+          onDragMove={handleDragMove}
+          onDragEnd={handleDragEnd}
+        >
           <div className="flex flex-row gap-1 sm:gap-4 flex-1 px-1 sm:px-4 w-full flex-nowrap items-stretch pb-2">
             <DropZone
               id="zone-unit"
