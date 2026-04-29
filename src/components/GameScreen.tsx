@@ -73,14 +73,14 @@ export function GameScreen() {
       className="h-[100dvh] w-full pt-4 flex flex-col font-sans select-none overflow-hidden bg-white"
       dir="rtl"
     >
-      <div
-        dir="ltr"
-        className="fixed top-0 left-0 right-0 z-[9999] bg-black/80 text-green-300 text-[10px] leading-tight font-mono p-1 pointer-events-none whitespace-pre"
-      >
-        {`dnd | active=${activeDragType ?? '-'} moves=${moveCount}`}
-        {debugLog.map((l, i) => `\n${l}`).join('')}
-      </div>
       <div className="flex-1 flex flex-col max-w-6xl mx-auto w-full h-full overflow-hidden">
+        <div
+          dir="ltr"
+          className="bg-black text-green-300 text-xs leading-tight font-mono p-2 mx-1 mb-1 rounded shrink-0 whitespace-pre border-2 border-yellow-400"
+        >
+          {`DEBUG v3 | active=${activeDragType ?? '-'} moves=${moveCount}`}
+          {debugLog.length === 0 ? '\n(no events yet)' : debugLog.map((l) => `\n${l}`).join('')}
+        </div>
         <div className="text-center pb-2 sm:pb-6 shrink-0 px-2">
           <h1 className="text-2xl sm:text-5xl font-extrabold text-gray-800 mb-2">
             בני את המספר: <span className="text-purple-600">{store.currentTargetNumber}</span>
