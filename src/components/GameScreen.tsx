@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -7,12 +7,12 @@ import {
   PointerSensor,
   TouchSensor,
   useSensor,
-  useSensors,
-} from '@dnd-kit/core';
-import { useGameStore } from '../store/useGameStore';
-import { PlaceValue } from '../domain/types';
-import { DropZone } from './DropZone';
-import { MontessoriBlock } from './MontessoriBlock';
+  useSensors
+} from "@dnd-kit/core";
+import { useGameStore } from "../store/useGameStore";
+import { PlaceValue } from "../domain/types";
+import { DropZone } from "./DropZone";
+import { MontessoriBlock } from "./MontessoriBlock";
 
 export function GameScreen() {
   const store = useGameStore();
@@ -20,17 +20,17 @@ export function GameScreen() {
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: { distance: 4 },
+      activationConstraint: { distance: 4 }
     }),
     useSensor(TouchSensor, {
-      activationConstraint: { delay: 150, tolerance: 5 },
+      activationConstraint: { delay: 150, tolerance: 5 }
     })
   );
 
-  const unitsBlocks = store.placedBlocks.filter((b) => b.type === 'unit');
-  const tensBlocks = store.placedBlocks.filter((b) => b.type === 'ten');
-  const hundredsBlocks = store.placedBlocks.filter((b) => b.type === 'hundred');
-  const thousandsBlocks = store.placedBlocks.filter((b) => b.type === 'thousand');
+  const unitsBlocks = store.placedBlocks.filter((b) => b.type === "unit");
+  const tensBlocks = store.placedBlocks.filter((b) => b.type === "ten");
+  const hundredsBlocks = store.placedBlocks.filter((b) => b.type === "hundred");
+  const thousandsBlocks = store.placedBlocks.filter((b) => b.type === "thousand");
 
   const showHundreds = store.currentTargetNumber >= 100;
   const showThousands = store.currentTargetNumber >= 1000;
@@ -65,13 +65,13 @@ export function GameScreen() {
             בני את המספר: <span className="text-purple-600">{store.currentTargetNumber}</span>
           </h1>
 
-          {store.interactionState === 'error' && store.feedbackMessage && (
+          {store.interactionState === "error" && store.feedbackMessage && (
             <div className="mt-1 p-2 sm:p-4 max-w-lg mx-auto bg-orange-100 text-orange-800 rounded-xl border border-orange-200 shadow-sm animate-bounce">
               <span className="font-bold text-sm sm:text-xl">{store.feedbackMessage}</span>
             </div>
           )}
 
-          {store.interactionState === 'success' && (
+          {store.interactionState === "success" && (
             <div className="mt-1 p-2 sm:p-4 max-w-lg mx-auto bg-green-100 text-green-800 rounded-xl shadow-sm text-sm sm:text-2xl font-bold">
               אלופה! אספת עוד 10 מטבעות! (סה"כ: {store.coinsCollected})
             </div>
@@ -143,7 +143,9 @@ export function GameScreen() {
           </div>
 
           <DragOverlay dropAnimation={null}>
-            {activeDragType ? <MontessoriBlock id="overlay" type={activeDragType} isOverlay /> : null}
+            {activeDragType ? (
+              <MontessoriBlock id="overlay" type={activeDragType} isOverlay />
+            ) : null}
           </DragOverlay>
         </DndContext>
 
