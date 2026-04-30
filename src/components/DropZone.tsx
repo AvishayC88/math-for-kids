@@ -31,10 +31,10 @@ export function DropZone({ id, type, title, blocks, onRemoveBlock }: Props) {
   return (
     <div 
       ref={setNodeRef}
-      className={`flex-1 min-w-0 min-h-0 border-2 sm:border-4 border-dashed ${borderColor} rounded-xl ${activeBg} transition-colors p-1 sm:p-4 flex flex-col items-center overflow-y-auto overflow-x-hidden overscroll-contain touch-pan-y`}
+      className={`flex-1 min-w-0 min-h-0 border-2 sm:border-4 border-dashed ${borderColor} rounded-xl ${activeBg} transition-colors p-1 sm:p-4 flex flex-col items-center overflow-hidden`}
     >
-      <h2 className={`sticky top-0 z-10 text-xs sm:text-2xl font-bold mb-2 sm:mb-4 text-gray-400 text-center truncate w-full ${activeBg}`}>{title}</h2>
-      <div className="flex flex-wrap gap-1 sm:gap-2 justify-center content-start w-full">
+      <h2 className="shrink-0 text-xs sm:text-2xl font-bold mb-2 sm:mb-4 text-gray-400 text-center truncate w-full">{title}</h2>
+      <div className="flex flex-wrap gap-1 sm:gap-2 justify-center content-start flex-1 basis-0 min-h-0 w-full overflow-y-auto overflow-x-hidden overscroll-contain touch-pan-y pb-2">
         {blocks.map((block) => (
           <MontessoriBlock 
             key={block.id} 
