@@ -2,22 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
-html,
-body,
-#root {
-  height: 100%;
-  margin: 0;
-  overflow: hidden;
-  overscroll-behavior: none;
+@layer base {
+  body {
+    /* 
+     * ARCHITECT NOTE: Critical CSS for mobile Drag & Drop.
+     * Disables the native pull-to-refresh and bounce effects on iOS/Android.
+     * This prevents the browser from hijacking vertical drag movements.
+     */
+    overscroll-behavior-y: none;
+    
+    @apply bg-white text-gray-900 antialiased;
+    
+    /* Disables the blue highlight flash when tapping elements on mobile */
+    -webkit-tap-highlight-color: transparent;
+  }
 }
 
-body {
-  user-select: none;
-  -webkit-user-select: none;
-  background-color: #f3f4f6;
-  touch-action: none;
-}
-
-* {
-  -webkit-tap-highlight-color: transparent;
+/* 
+ * Utility class for draggable elements.
+ * Fully neutralizes native touch behaviors (like magnifying glass or context menus)
+ * so dnd-kit can process raw pointer events without interruption.
+ */
+@layer utilities {
+  .dnd-strict-lock {
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
 }
