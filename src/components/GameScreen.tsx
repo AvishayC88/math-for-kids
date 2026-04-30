@@ -1,36 +1,60 @@
-import { useState } from "react";
-import {
-  DndContext,
-  DragEndEvent,
-  DragOverlay,
+import { useState, useEffect } from 'react';
+import { 
+  DndContext, 
+  DragEndEvent, 
+  DragOverlay, 
   DragStartEvent,
-  PointerSensor,
-  TouchSensor,
   useSensor,
-  useSensors
-} from "@dnd-kit/core";
-import { useGameStore } from "../store/useGameStore";
-import { PlaceValue } from "../domain/types";
-import { DropZone } from "./DropZone";
-import { MontessoriBlock } from "./MontessoriBlock";
+  useSensors,
+  MouseSensor,
+  TouchSensor
+} from '@dnd-kit/core';
+import { useGameStore } from '../store/useGameStore';
+import { PlaceValue } from '../domain/types';
+import { DropZone } from './DropZone';
+import { MontessoriBlock } from './MontessoriBlock';
 
 export function GameScreen() {
   const store = useGameStore();
   const [activeDragType, setActiveDragType] = useState<PlaceValue | null>(null);
 
+  // Global scroll lockdown
+  useEffect(() => {
+    const originalTouchAction = document.body.style.touchAction;
+    const originalOverscroll = document.body.style.overscrollBehavior;
+
+    document.body.style.touchAction = 'none'; // Absolutely no panning
+    document.body.style.overscrollBehavior = 'none';
+
+    // Intercept native scroll attempts during touch
+    const preventScrollOnDrag = (e: TouchEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest('[data-draggable-block="true"]')) {
+        if (e.cancelable) {
+          e.preventDefault();
+        }
+      }
+    };
+
+    document.addEventListener('touchmove', preventScrollOnDrag, { passive: false });
+
+    return () => {
+      document.body.style.touchAction = originalTouchAction;
+      document.body.style.overscrollBehavior = originalOverscroll;
+      document.removeEventListener('touchmove', preventScrollOnDrag);
+    };
+  }, []);
+
+  // Zero-latency sensors
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 4 }
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: { delay: 150, tolerance: 5 }
-    })
+    useSensor(MouseSensor),
+    useSensor(TouchSensor)
   );
 
-  const unitsBlocks = store.placedBlocks.filter((b) => b.type === "unit");
-  const tensBlocks = store.placedBlocks.filter((b) => b.type === "ten");
-  const hundredsBlocks = store.placedBlocks.filter((b) => b.type === "hundred");
-  const thousandsBlocks = store.placedBlocks.filter((b) => b.type === "thousand");
+  const unitsBlocks = store.placedBlocks.filter(b => b.type === 'unit');
+  const tensBlocks = store.placedBlocks.filter(b => b.type === 'ten');
+  const hundredsBlocks = store.placedBlocks.filter(b => b.type === 'hundred');
+  const thousandsBlocks = store.placedBlocks.filter(b => b.type === 'thousand');
 
   const showHundreds = store.currentTargetNumber >= 100;
   const showThousands = store.currentTargetNumber >= 1000;
@@ -55,70 +79,40 @@ export function GameScreen() {
   };
 
   return (
-    <div
-      className="h-[100dvh] w-full pt-4 flex flex-col font-sans select-none overflow-hidden bg-white"
-      dir="rtl"
-    >
+    // Hard constraint to viewport, strictly no overflow anywhere
+    <div className="fixed inset-0 pt-4 flex flex-col font-sans select-none overflow-hidden bg-white" dir="rtl">
+      
       <div className="flex-1 flex flex-col max-w-6xl mx-auto w-full h-full overflow-hidden">
+        
         <div className="text-center pb-2 sm:pb-6 shrink-0 px-2">
           <h1 className="text-2xl sm:text-5xl font-extrabold text-gray-800 mb-2">
             בני את המספר: <span className="text-purple-600">{store.currentTargetNumber}</span>
           </h1>
-
-          {store.interactionState === "error" && store.feedbackMessage && (
+          
+          {store.interactionState === 'error' && store.feedbackMessage && (
             <div className="mt-1 p-2 sm:p-4 max-w-lg mx-auto bg-orange-100 text-orange-800 rounded-xl border border-orange-200 shadow-sm animate-bounce">
               <span className="font-bold text-sm sm:text-xl">{store.feedbackMessage}</span>
             </div>
           )}
 
-          {store.interactionState === "success" && (
+          {store.interactionState === 'success' && (
             <div className="mt-1 p-2 sm:p-4 max-w-lg mx-auto bg-green-100 text-green-800 rounded-xl shadow-sm text-sm sm:text-2xl font-bold">
               אלופה! אספת עוד 10 מטבעות! (סה"כ: {store.coinsCollected})
             </div>
           )}
         </div>
 
-        <DndContext
-          sensors={sensors}
-          autoScroll={false}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
+        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+          
+          {/* Flex-nowrap ensures all columns stay on one line. No overflow! */}
           <div className="flex flex-row gap-1 sm:gap-4 flex-1 px-1 sm:px-4 w-full flex-nowrap items-stretch pb-2">
-            <DropZone
-              id="zone-unit"
-              type="unit"
-              title="אחדות"
-              blocks={unitsBlocks}
-              onRemoveBlock={store.removeBlock}
-            />
-            <DropZone
-              id="zone-ten"
-              type="ten"
-              title="עשרות"
-              blocks={tensBlocks}
-              onRemoveBlock={store.removeBlock}
-            />
-            {showHundreds && (
-              <DropZone
-                id="zone-hundred"
-                type="hundred"
-                title="מאות"
-                blocks={hundredsBlocks}
-                onRemoveBlock={store.removeBlock}
-              />
-            )}
-            {showThousands && (
-              <DropZone
-                id="zone-thousand"
-                type="thousand"
-                title="אלפים"
-                blocks={thousandsBlocks}
-                onRemoveBlock={store.removeBlock}
-              />
-            )}
+            <DropZone id="zone-unit" type="unit" title="אחדות" blocks={unitsBlocks} onRemoveBlock={store.removeBlock} />
+            <DropZone id="zone-ten" type="ten" title="עשרות" blocks={tensBlocks} onRemoveBlock={store.removeBlock} />
+            {showHundreds && <DropZone id="zone-hundred" type="hundred" title="מאות" blocks={hundredsBlocks} onRemoveBlock={store.removeBlock} />}
+            {showThousands && <DropZone id="zone-thousand" type="thousand" title="אלפים" blocks={thousandsBlocks} onRemoveBlock={store.removeBlock} />}
           </div>
 
+          {/* Toolbox: Distributed evenly across the width, strict flex-nowrap */}
           <div className="w-full bg-gray-100 p-3 sm:p-6 rounded-t-3xl shadow-inner border-t-4 border-gray-200 mt-auto shrink-0 flex flex-row justify-around items-end relative z-10 flex-nowrap">
             {showThousands && (
               <div className="flex flex-col items-center gap-1 sm:gap-2">
@@ -143,14 +137,12 @@ export function GameScreen() {
           </div>
 
           <DragOverlay dropAnimation={null}>
-            {activeDragType ? (
-              <MontessoriBlock id="overlay" type={activeDragType} isOverlay />
-            ) : null}
+            {activeDragType ? <MontessoriBlock id="overlay" type={activeDragType} isOverlay /> : null}
           </DragOverlay>
         </DndContext>
 
         <div className="bg-gray-100 pb-4 pt-1 sm:pt-2 shrink-0 flex justify-center w-full relative z-20">
-          <button
+          <button 
             onClick={store.checkAnswer}
             disabled={store.placedBlocks.length === 0}
             className="py-2 sm:py-4 px-8 sm:px-16 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white font-bold text-xl sm:text-3xl rounded-full shadow-lg transition-transform active:scale-95"
