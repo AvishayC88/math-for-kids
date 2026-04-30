@@ -29,6 +29,7 @@ export function MontessoriBlock({ id, type, isDraggable = false, isOverlay = fal
   let typeClasses = "";
   let innerContent = null;
   let removeBtnColor = "";
+  const isPlacedBlock = Boolean(onRemove) && !isOverlay;
 
   switch (type) {
     case 'unit':
@@ -55,10 +56,12 @@ export function MontessoriBlock({ id, type, isDraggable = false, isOverlay = fal
       );
       break;
     case 'thousand':
-      typeClasses = "bg-emerald-600 w-24 h-24 sm:w-40 sm:h-40 border-2 border-emerald-800 shadow-xl";
+      typeClasses = isPlacedBlock
+        ? "bg-emerald-600 w-full max-w-24 aspect-square sm:max-w-40 border-2 border-emerald-800 shadow-xl"
+        : "bg-emerald-600 w-16 h-16 sm:w-40 sm:h-40 border-2 border-emerald-800 shadow-xl";
       removeBtnColor = "bg-emerald-800 text-white";
       innerContent = (
-        <div className="text-emerald-800 opacity-20 text-xl sm:text-4xl font-black pointer-events-none">1000</div>
+        <div className="text-emerald-800 opacity-20 text-xs sm:text-4xl font-black pointer-events-none">1000</div>
       );
       break;
   }
