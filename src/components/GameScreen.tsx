@@ -52,9 +52,9 @@ export function GameScreen() {
   };
 
   return (
-    <div className="min-h-[100dvh] pt-4 flex flex-col font-sans select-none overflow-x-hidden bg-white" dir="rtl">
+    <div className="h-[100dvh] max-h-[100dvh] pt-4 flex flex-col font-sans select-none overflow-hidden bg-white" dir="rtl">
       
-      <div className="flex-1 flex flex-col max-w-6xl mx-auto w-full min-h-[100dvh]">
+      <div className="flex-1 min-h-0 flex flex-col max-w-6xl mx-auto w-full h-full">
         
         <div className="text-center pb-2 sm:pb-6 shrink-0 px-2">
           <h1 className="text-2xl sm:text-5xl font-extrabold text-gray-800 mb-2">
@@ -76,7 +76,7 @@ export function GameScreen() {
 
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           
-          <div className="flex flex-row gap-1 sm:gap-4 flex-1 px-1 sm:px-4 w-full flex-nowrap items-stretch pb-2">
+          <div className="flex flex-row gap-1 sm:gap-4 flex-1 min-h-0 px-1 sm:px-4 w-full flex-nowrap items-stretch overflow-hidden pb-2">
             <DropZone id="zone-unit" type="unit" title="אחדות" blocks={unitsBlocks} onRemoveBlock={store.removeBlock} />
             <DropZone id="zone-ten" type="ten" title="עשרות" blocks={tensBlocks} onRemoveBlock={store.removeBlock} />
             {showHundreds && <DropZone id="zone-hundred" type="hundred" title="מאות" blocks={hundredsBlocks} onRemoveBlock={store.removeBlock} />}
