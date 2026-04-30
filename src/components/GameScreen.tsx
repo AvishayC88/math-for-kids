@@ -18,7 +18,6 @@ export function GameScreen() {
   const store = useGameStore();
   const [activeDragType, setActiveDragType] = useState<PlaceValue | null>(null);
 
-  // Zero-latency sensors
   const sensors = useSensors(
     useSensor(MouseSensor),
     useSensor(TouchSensor)
@@ -52,10 +51,13 @@ export function GameScreen() {
   };
 
   return (
-    <div className="h-[100dvh] max-h-[100dvh] pt-4 flex flex-col font-sans select-none overflow-hidden bg-white" dir="rtl">
+    // ARCHITECT NOTE: Replaced 'fixed inset-0' with 'h-full w-full' to let App.tsx govern the 100dvh wrapper.
+    // This correctly places the screen below the Navbar instead of sliding underneath it.
+    <div className="h-full w-full pt-2 sm:pt-4 flex flex-col font-sans select-none overflow-hidden bg-white" dir="rtl">
       
       <div className="flex-1 min-h-0 flex flex-col max-w-6xl mx-auto w-full h-full">
         
+        {/* Header - Fixed */}
         <div className="text-center pb-2 sm:pb-6 shrink-0 px-2">
           <h1 className="text-2xl sm:text-5xl font-extrabold text-gray-800 mb-2">
             בני את המספר: <span className="text-purple-600">{store.currentTargetNumber}</span>
@@ -76,6 +78,7 @@ export function GameScreen() {
 
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           
+          {/* DropZones Area - Flexible, takes remaining space but can shrink */}
           <div className="flex flex-row gap-1 sm:gap-4 flex-1 min-h-0 px-1 sm:px-4 w-full flex-nowrap items-stretch overflow-hidden pb-2">
             <DropZone id="zone-unit" type="unit" title="אחדות" blocks={unitsBlocks} onRemoveBlock={store.removeBlock} />
             <DropZone id="zone-ten" type="ten" title="עשרות" blocks={tensBlocks} onRemoveBlock={store.removeBlock} />
@@ -83,8 +86,8 @@ export function GameScreen() {
             {showThousands && <DropZone id="zone-thousand" type="thousand" title="אלפים" blocks={thousandsBlocks} onRemoveBlock={store.removeBlock} />}
           </div>
 
-          {/* Toolbox: Distributed evenly across the width, strict flex-nowrap */}
-          <div className="w-full bg-gray-100 p-3 sm:p-6 rounded-t-3xl shadow-inner border-t-4 border-gray-200 mt-auto shrink-0 flex flex-row justify-around items-end relative z-10 flex-nowrap">
+          {/* Toolbox - Fixed at bottom of DndContext */}
+          <div className="w-full bg-gray-100 p-3 sm:p-6 rounded-t-3xl shadow-[0_-4px_10px_rgba(0,0,0,0.05)] border-t-4 border-gray-200 shrink-0 flex flex-row justify-around items-end relative z-10 flex-nowrap">
             {showThousands && (
               <div className="flex flex-col items-center gap-1 sm:gap-2">
                 <MontessoriBlock id="src-thousand" type="thousand" isDraggable />
@@ -112,11 +115,12 @@ export function GameScreen() {
           </DragOverlay>
         </DndContext>
 
-        <div className="bg-gray-100 pb-4 pt-1 sm:pt-2 shrink-0 flex justify-center w-full relative z-20">
+        {/* Action Button - Strictly Fixed at the very bottom */}
+        <div className="bg-gray-100 pb-6 pt-2 sm:pt-4 shrink-0 flex justify-center w-full relative z-20">
           <button 
             onClick={store.checkAnswer}
             disabled={store.placedBlocks.length === 0}
-            className="py-2 sm:py-4 px-8 sm:px-16 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white font-bold text-xl sm:text-3xl rounded-full shadow-lg transition-transform active:scale-95"
+            className="w-11/12 sm:w-auto py-3 sm:py-4 px-8 sm:px-16 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white font-bold text-xl sm:text-3xl rounded-2xl shadow-lg transition-transform active:scale-95"
           >
             בדוק אותי!
           </button>

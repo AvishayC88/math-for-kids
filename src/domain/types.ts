@@ -1,5 +1,5 @@
-// Expanded to include hundreds and thousands
 export type PlaceValue = 'unit' | 'ten' | 'hundred' | 'thousand';
+export type GameMode = 'build' | 'recognize';
 
 export interface MontessoriBlock {
   id: string;
@@ -8,12 +8,12 @@ export interface MontessoriBlock {
 }
 
 export interface GameState {
+  gameMode: GameMode;
   currentTargetNumber: number;
   placedBlocks: MontessoriBlock[];
   coinsCollected: number;
   consecutiveSuccesses: number;
   interactionState: 'playing' | 'validating' | 'success' | 'error';
-  // Dynamic feedback message from the validation engine
   feedbackMessage: string | null; 
 }
 
