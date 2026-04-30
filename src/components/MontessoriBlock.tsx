@@ -9,57 +9,43 @@ interface Props {
   onRemove?: () => void;
 }
 
-export function MontessoriBlock({
-  id,
-  type,
-  isDraggable = false,
-  isOverlay = false,
-  onRemove,
-}: Props) {
+export function MontessoriBlock({ id, type, isDraggable = false, isOverlay = false, onRemove }: Props) {
+  // ZERO latency drag. No distance, no delay constraints.
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id,
+    id: id,
     data: { type },
     disabled: !isDraggable,
   });
 
-  const handleRemoveClick = (
-    e: React.PointerEvent | React.MouseEvent | React.TouchEvent
-  ) => {
+  const handleRemoveClick = (e: React.PointerEvent | React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation();
     if (onRemove) {
       onRemove();
     }
   };
 
-  const baseClasses =
-    'group rounded-sm shadow-md transition-all duration-200 flex items-center justify-center font-bold text-white relative overflow-hidden select-none touch-none shrink-0';
-
-  let typeClasses = '';
+  const baseClasses = "group rounded-sm shadow-md transition-all duration-200 flex items-center justify-center font-bold text-white relative overflow-hidden select-none touch-none shrink-0";
+  
+  let typeClasses = "";
   let innerContent = null;
-  let removeBtnColor = '';
+  let removeBtnColor = "";
 
   switch (type) {
     case 'unit':
-      typeClasses =
-        'bg-green-500 w-6 h-6 sm:w-8 sm:h-8 border border-green-600 text-[10px] sm:text-xs';
-      removeBtnColor = 'bg-green-700 text-white';
+      // Responsive sizes: smaller on mobile, normal on sm+ screens
+      typeClasses = "bg-green-500 w-6 h-6 sm:w-8 sm:h-8 border border-green-600 text-[10px] sm:text-xs";
+      removeBtnColor = "bg-green-700 text-white";
       break;
-
     case 'ten':
-      typeClasses =
-        'bg-blue-500 w-6 h-24 sm:w-8 sm:h-32 border border-blue-600 text-xs';
-      removeBtnColor = 'bg-blue-700 text-white';
+      typeClasses = "bg-blue-500 w-6 h-24 sm:w-8 sm:h-32 border border-blue-600 text-xs";
+      removeBtnColor = "bg-blue-700 text-white";
       innerContent = [...Array(9)].map((_, i) => (
-        <div
-          key={i}
-          className="w-full border-b border-blue-400 opacity-50 pointer-events-none"
-        />
+        <div key={i} className="w-full border-b border-blue-400 opacity-50 pointer-events-none" />
       ));
       break;
-
     case 'hundred':
-      typeClasses = 'bg-red-500 w-20 h-20 sm:w-32 sm:h-32 border border-red-600';
-      removeBtnColor = 'bg-red-700 text-white';
+      typeClasses = "bg-red-500 w-20 h-20 sm:w-32 sm:h-32 border border-red-600";
+      removeBtnColor = "bg-red-700 text-white";
       innerContent = (
         <div className="absolute inset-0 grid grid-cols-10 grid-rows-10 opacity-30 pointer-events-none">
           {[...Array(100)].map((_, i) => (
@@ -68,25 +54,17 @@ export function MontessoriBlock({
         </div>
       );
       break;
-
     case 'thousand':
-      typeClasses =
-        'bg-emerald-600 w-24 h-24 sm:w-40 sm:h-40 border-2 border-emerald-800 shadow-xl';
-      removeBtnColor = 'bg-emerald-800 text-white';
+      typeClasses = "bg-emerald-600 w-24 h-24 sm:w-40 sm:h-40 border-2 border-emerald-800 shadow-xl";
+      removeBtnColor = "bg-emerald-800 text-white";
       innerContent = (
-        <div className="text-emerald-800 opacity-20 text-xl sm:text-4xl font-black pointer-events-none">
-          1000
-        </div>
+        <div className="text-emerald-800 opacity-20 text-xl sm:text-4xl font-black pointer-events-none">1000</div>
       );
       break;
   }
-
-  const opacity = isDragging && !isOverlay ? 'opacity-0' : 'opacity-100';
-  const actionClasses = isOverlay
-    ? 'scale-110 shadow-2xl cursor-grabbing z-50'
-    : isDraggable
-      ? 'cursor-grab active:cursor-grabbing'
-      : '';
+  
+  const opacity = isDragging && !isOverlay ? "opacity-0" : "opacity-100";
+  const actionClasses = isOverlay ? "scale-110 shadow-2xl cursor-grabbing z-50" : (isDraggable ? "cursor-grab" : "");
 
   return (
     <div
@@ -94,12 +72,13 @@ export function MontessoriBlock({
       {...listeners}
       {...attributes}
       onContextMenu={(e) => e.preventDefault()}
+      // Identify block for global touch lock
       data-draggable-block="true"
       className={`${baseClasses} ${typeClasses} ${opacity} ${actionClasses}`}
       style={{
         WebkitTouchCallout: 'none',
         WebkitUserSelect: 'none',
-        touchAction: 'none',
+        touchAction: 'none'
       }}
     >
       {onRemove && !isOverlay && (
@@ -113,9 +92,7 @@ export function MontessoriBlock({
       )}
 
       {type === 'ten' ? (
-        <div className="flex flex-col h-full w-full justify-between py-1 pointer-events-none">
-          {innerContent}
-        </div>
+        <div className="flex flex-col h-full w-full justify-between py-1 pointer-events-none">{innerContent}</div>
       ) : (
         innerContent
       )}
