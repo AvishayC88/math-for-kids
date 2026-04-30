@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { 
   DndContext, 
   DragEndEvent, 
@@ -17,33 +17,6 @@ import { MontessoriBlock } from './MontessoriBlock';
 export function GameScreen() {
   const store = useGameStore();
   const [activeDragType, setActiveDragType] = useState<PlaceValue | null>(null);
-
-  // Global scroll lockdown
-  useEffect(() => {
-    const originalTouchAction = document.body.style.touchAction;
-    const originalOverscroll = document.body.style.overscrollBehavior;
-
-    document.body.style.touchAction = 'none'; // Absolutely no panning
-    document.body.style.overscrollBehavior = 'none';
-
-    // Intercept native scroll attempts during touch
-    const preventScrollOnDrag = (e: TouchEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (target?.closest('[data-draggable-block="true"]')) {
-        if (e.cancelable) {
-          e.preventDefault();
-        }
-      }
-    };
-
-    document.addEventListener('touchmove', preventScrollOnDrag, { passive: false });
-
-    return () => {
-      document.body.style.touchAction = originalTouchAction;
-      document.body.style.overscrollBehavior = originalOverscroll;
-      document.removeEventListener('touchmove', preventScrollOnDrag);
-    };
-  }, []);
 
   // Zero-latency sensors
   const sensors = useSensors(
@@ -79,10 +52,9 @@ export function GameScreen() {
   };
 
   return (
-    // Hard constraint to viewport, strictly no overflow anywhere
-    <div className="fixed inset-0 pt-4 flex flex-col font-sans select-none overflow-hidden bg-white" dir="rtl">
+    <div className="min-h-[100dvh] pt-4 flex flex-col font-sans select-none overflow-x-hidden bg-white" dir="rtl">
       
-      <div className="flex-1 flex flex-col max-w-6xl mx-auto w-full h-full overflow-hidden">
+      <div className="flex-1 flex flex-col max-w-6xl mx-auto w-full min-h-[100dvh]">
         
         <div className="text-center pb-2 sm:pb-6 shrink-0 px-2">
           <h1 className="text-2xl sm:text-5xl font-extrabold text-gray-800 mb-2">
@@ -104,7 +76,6 @@ export function GameScreen() {
 
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           
-          {/* Flex-nowrap ensures all columns stay on one line. No overflow! */}
           <div className="flex flex-row gap-1 sm:gap-4 flex-1 px-1 sm:px-4 w-full flex-nowrap items-stretch pb-2">
             <DropZone id="zone-unit" type="unit" title="אחדות" blocks={unitsBlocks} onRemoveBlock={store.removeBlock} />
             <DropZone id="zone-ten" type="ten" title="עשרות" blocks={tensBlocks} onRemoveBlock={store.removeBlock} />

@@ -24,7 +24,7 @@ export function MontessoriBlock({ id, type, isDraggable = false, isOverlay = fal
     }
   };
 
-  const baseClasses = "group rounded-sm shadow-md transition-all duration-200 flex items-center justify-center font-bold text-white relative overflow-hidden select-none touch-none shrink-0";
+  const baseClasses = "group rounded-sm shadow-md transition-all duration-200 flex items-center justify-center font-bold text-white relative overflow-hidden select-none shrink-0";
   
   let typeClasses = "";
   let innerContent = null;
@@ -64,7 +64,9 @@ export function MontessoriBlock({ id, type, isDraggable = false, isOverlay = fal
   }
   
   const opacity = isDragging && !isOverlay ? "opacity-0" : "opacity-100";
-  const actionClasses = isOverlay ? "scale-110 shadow-2xl cursor-grabbing z-50" : (isDraggable ? "cursor-grab" : "");
+  const actionClasses = isOverlay
+    ? "scale-110 shadow-2xl cursor-grabbing z-50 touch-none"
+    : (isDraggable ? "cursor-grab touch-none" : "");
 
   return (
     <div
@@ -72,13 +74,12 @@ export function MontessoriBlock({ id, type, isDraggable = false, isOverlay = fal
       {...listeners}
       {...attributes}
       onContextMenu={(e) => e.preventDefault()}
-      // Identify block for global touch lock
-      data-draggable-block="true"
+      data-draggable-block={isDraggable || isOverlay ? 'true' : undefined}
       className={`${baseClasses} ${typeClasses} ${opacity} ${actionClasses}`}
       style={{
         WebkitTouchCallout: 'none',
         WebkitUserSelect: 'none',
-        touchAction: 'none'
+        touchAction: isDraggable || isOverlay ? 'none' : 'manipulation'
       }}
     >
       {onRemove && !isOverlay && (
