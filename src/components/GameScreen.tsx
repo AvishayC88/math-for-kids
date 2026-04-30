@@ -51,8 +51,7 @@ export function GameScreen() {
   };
 
   return (
-    // ARCHITECT NOTE: Replaced 'fixed inset-0' with 'h-full w-full' to let App.tsx govern the 100dvh wrapper.
-    // This correctly places the screen below the Navbar instead of sliding underneath it.
+    // ARCHITECT NOTE: Using h-full w-full to let App.tsx govern the 100dvh wrapper.
     <div className="h-full w-full pt-2 sm:pt-4 flex flex-col font-sans select-none overflow-hidden bg-white" dir="rtl">
       
       <div className="flex-1 min-h-0 flex flex-col max-w-6xl mx-auto w-full h-full">
@@ -119,7 +118,8 @@ export function GameScreen() {
         <div className="bg-gray-100 pb-6 pt-2 sm:pt-4 shrink-0 flex justify-center w-full relative z-20">
           <button 
             onClick={store.checkAnswer}
-            disabled={store.placedBlocks.length === 0}
+            // ARCHITECT NOTE: Fixed Double Submission bug by disabling the button during the success state
+            disabled={store.placedBlocks.length === 0 || store.interactionState === 'success'}
             className="w-11/12 sm:w-auto py-3 sm:py-4 px-8 sm:px-16 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white font-bold text-xl sm:text-3xl rounded-2xl shadow-lg transition-transform active:scale-95"
           >
             בדוק אותי!
