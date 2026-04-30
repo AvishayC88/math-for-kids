@@ -2,32 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
-<<<<<<< HEAD
-/* Prevent text selection during drag and drop */
 html,
 body,
 #root {
   height: 100%;
 }
 
-body {
-  user-select: none;
-  background-color: #f3f4f6;
-  overflow: hidden;
-=======
 @layer base {
   body {
-    /* 
-     * ARCHITECT NOTE: Critical CSS for mobile Drag & Drop.
-     * Disables the native pull-to-refresh and bounce effects on iOS/Android.
-     * This prevents the browser from hijacking vertical drag movements.
-     */
+    user-select: none;
+    overflow: hidden;
     overscroll-behavior-y: none;
-    
-    @apply bg-white text-gray-900 antialiased;
-    
-    /* Disables the blue highlight flash when tapping elements on mobile */
     -webkit-tap-highlight-color: transparent;
+    @apply bg-white text-gray-900 antialiased;
   }
 }
 
@@ -43,5 +30,4 @@ body {
     -webkit-user-select: none;
     user-select: none;
   }
->>>>>>> bb3439f4922b13425126612992699da10a90a351
 }
