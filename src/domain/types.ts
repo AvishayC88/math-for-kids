@@ -1,14 +1,16 @@
 export type PlaceValue = 'unit' | 'ten' | 'hundred' | 'thousand';
 export type GameMode = 'build' | 'recognize';
+export type DifficultyLevel = 'tens' | 'hundreds' | 'thousands';
 
 export interface MontessoriBlock {
   id: string;
   type: PlaceValue;
-  value: number; // 1, 10, 100, or 1000
+  value: number;
 }
 
 export interface GameState {
   gameMode: GameMode;
+  difficulty: DifficultyLevel;
   currentTargetNumber: number;
   placedBlocks: MontessoriBlock[];
   coinsCollected: number;

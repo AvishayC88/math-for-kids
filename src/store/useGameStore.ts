@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { MontessoriBlock, GameState, PlaceValue, GameMode } from '../domain/types';
+import { MontessoriBlock, GameState, PlaceValue, GameMode, DifficultyLevel } from '../domain/types';
 import { LocalStorageRepository } from '../data/LocalStorageRepository';
 
 const repo = new LocalStorageRepository();
@@ -31,6 +31,7 @@ function generateBlocksForNumber(num: number): MontessoriBlock[] {
 interface GameStore extends GameState {
   initGame: () => Promise<void>;
   setGameMode: (mode: GameMode) => void;
+  setDifficulty: (level: DifficultyLevel) => void;
   addBlock: (type: PlaceValue) => void;
   removeBlock: (id: string) => void;
   checkAnswer: () => void;
@@ -40,6 +41,7 @@ interface GameStore extends GameState {
 
 export const useGameStore = create<GameStore>((set, get) => ({
   gameMode: 'build',
+  difficulty: 'tens',
   currentTargetNumber: 0,
   placedBlocks: [],
   coinsCollected: 0,
@@ -58,6 +60,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   setGameMode: (mode: GameMode) => {
     set({ gameMode: mode });
+    get().resetBoard();
+  },
+
+  setDifficulty: (level: DifficultyLevel) => {
+    set({ difficulty: level });
+    repo.saveUserProgress(USER_ID, get());
     get().resetBoard();
   },
 
@@ -88,14 +96,37 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }));
   },
 
-  resetBoard: () => {
-    const successes = get().consecutiveSuccesses;
-    let maxRange = 20; 
+resetBoard: () => {
+    const diff = get().difficulty;
+    let newTarget = 0;
     
-    if (successes >= 10) maxRange = 9999; 
-    else if (successes >= 5) maxRange = 999; 
+    // ARCHITECT NOTE: Weighted Randomness to solve the "90% Trap".
+    // We first determine the magnitude (number of digits) with fixed probabilities, 
+    // ensuring the lower tier actually appears ~30% of the time.
+    
+    if (diff === 'tens') {
+      // 1 to 99 (Flat random is fine here, roughly 90% tens, 10% units)
+      newTarget = Math.floor(Math.random() * 99) + 1;
+      
+    } else if (diff === 'hundreds') {
+      // 30% chance for Tens (10-99), 70% chance for Hundreds (100-999)
+      const isTens = Math.random() < 0.35;
+      if (isTens) {
+        newTarget = Math.floor(Math.random() * 90) + 10;
+      } else {
+        newTarget = Math.floor(Math.random() * 900) + 100;
+      }
+      
+    } else if (diff === 'thousands') {
+      // 30% chance for Hundreds (100-999), 70% chance for Thousands (1000-9999)
+      const isHundreds = Math.random() < 0.35;
+      if (isHundreds) {
+        newTarget = Math.floor(Math.random() * 900) + 100;
+      } else {
+        newTarget = Math.floor(Math.random() * 9000) + 1000;
+      }
+    }
 
-    const newTarget = Math.floor(Math.random() * (maxRange - 1)) + 1;
     const mode = get().gameMode;
 
     if (mode === 'build') {
@@ -106,7 +137,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
         feedbackMessage: null
       });
     } else {
-      // In recognize mode, we auto-generate the blocks for the target
       const generatedBlocks = generateBlocksForNumber(newTarget);
       set({
         currentTargetNumber: newTarget,
@@ -118,7 +148,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   checkAnswer: () => {
-    // Logic for 'build' mode
     const state = get();
     const currentSum = state.placedBlocks.reduce((acc, b) => acc + b.value, 0);
 
@@ -148,7 +177,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   checkRecognizeAnswer: (inputNumber: number) => {
-    // Logic for 'recognize' mode
     const state = get();
     if (inputNumber === state.currentTargetNumber) {
       const newSuccessCount = state.consecutiveSuccesses + 1;
