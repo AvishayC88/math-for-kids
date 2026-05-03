@@ -5,7 +5,7 @@ import { LocalStorageRepository } from '../data/LocalStorageRepository';
 const repo = new LocalStorageRepository();
 const USER_ID = 'daughter_user_1';
 
-// ARCHITECT NOTE: Helper to generate physical blocks from an abstract number
+// Helper to generate physical blocks from an abstract number
 function generateBlocksForNumber(num: number): MontessoriBlock[] {
   const blocks: MontessoriBlock[] = [];
   let remaining = num;
@@ -28,6 +28,13 @@ function generateBlocksForNumber(num: number): MontessoriBlock[] {
   return blocks;
 }
 
+// ARCHITECT NOTE: Helper to calculate dynamic rewards
+function getRewardAmount(difficulty: DifficultyLevel): number {
+  if (difficulty === 'thousands') return 30;
+  if (difficulty === 'hundreds') return 20;
+  return 10;
+}
+
 interface GameStore extends GameState {
   initGame: () => Promise<void>;
   setGameMode: (mode: GameMode) => void;
@@ -37,6 +44,7 @@ interface GameStore extends GameState {
   checkAnswer: () => void;
   checkRecognizeAnswer: (inputNumber: number) => void;
   resetBoard: () => void;
+  buySticker: (stickerId: string, cost: number) => void;
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -45,6 +53,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   currentTargetNumber: 0,
   placedBlocks: [],
   coinsCollected: 0,
+  unlockedStickers: [],
   consecutiveSuccesses: 0,
   interactionState: 'playing',
   feedbackMessage: null,
@@ -52,7 +61,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   initGame: async () => {
     const savedProgress = await repo.getUserProgress(USER_ID);
     if (savedProgress) {
-      set({ ...savedProgress, interactionState: 'playing', feedbackMessage: null });
+      // Ensure unlockedStickers array exists for returning users with old save data
+      set({ ...savedProgress, unlockedStickers: savedProgress.unlockedStickers || [], interactionState: 'playing', feedbackMessage: null });
     } else {
       get().resetBoard();
     }
@@ -96,35 +106,18 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }));
   },
 
-resetBoard: () => {
+  resetBoard: () => {
     const diff = get().difficulty;
     let newTarget = 0;
     
-    // ARCHITECT NOTE: Weighted Randomness to solve the "90% Trap".
-    // We first determine the magnitude (number of digits) with fixed probabilities, 
-    // ensuring the lower tier actually appears ~30% of the time.
-    
     if (diff === 'tens') {
-      // 1 to 99 (Flat random is fine here, roughly 90% tens, 10% units)
       newTarget = Math.floor(Math.random() * 99) + 1;
-      
     } else if (diff === 'hundreds') {
-      // 30% chance for Tens (10-99), 70% chance for Hundreds (100-999)
       const isTens = Math.random() < 0.35;
-      if (isTens) {
-        newTarget = Math.floor(Math.random() * 90) + 10;
-      } else {
-        newTarget = Math.floor(Math.random() * 900) + 100;
-      }
-      
+      newTarget = isTens ? Math.floor(Math.random() * 90) + 10 : Math.floor(Math.random() * 900) + 100;
     } else if (diff === 'thousands') {
-      // 30% chance for Hundreds (100-999), 70% chance for Thousands (1000-9999)
       const isHundreds = Math.random() < 0.35;
-      if (isHundreds) {
-        newTarget = Math.floor(Math.random() * 900) + 100;
-      } else {
-        newTarget = Math.floor(Math.random() * 9000) + 1000;
-      }
+      newTarget = isHundreds ? Math.floor(Math.random() * 900) + 100 : Math.floor(Math.random() * 9000) + 1000;
     }
 
     const mode = get().gameMode;
@@ -166,8 +159,13 @@ resetBoard: () => {
       if (overLimitColumn) {
         set({ interactionState: 'error', feedbackMessage: `הסכום נכון! אבל יש לנו יותר מ-9 ${overLimitColumn}. בואי נחליף 10 ${overLimitColumn} ב${requiredExchange}.`});
       } else {
-        const newSuccessCount = state.consecutiveSuccesses + 1;
-        set({ interactionState: 'success', consecutiveSuccesses: newSuccessCount, coinsCollected: state.coinsCollected + 10, feedbackMessage: null });
+        const reward = getRewardAmount(state.difficulty);
+        set({ 
+          interactionState: 'success', 
+          consecutiveSuccesses: state.consecutiveSuccesses + 1, 
+          coinsCollected: state.coinsCollected + reward, 
+          feedbackMessage: `אלופה! הרווחת ${reward} כוכבים! ⭐`
+        });
         repo.saveUserProgress(USER_ID, get());
         setTimeout(() => get().resetBoard(), 3000);
       }
@@ -179,12 +177,29 @@ resetBoard: () => {
   checkRecognizeAnswer: (inputNumber: number) => {
     const state = get();
     if (inputNumber === state.currentTargetNumber) {
-      const newSuccessCount = state.consecutiveSuccesses + 1;
-      set({ interactionState: 'success', consecutiveSuccesses: newSuccessCount, coinsCollected: state.coinsCollected + 10, feedbackMessage: null });
+      const reward = getRewardAmount(state.difficulty);
+      set({ 
+        interactionState: 'success', 
+        consecutiveSuccesses: state.consecutiveSuccesses + 1, 
+        coinsCollected: state.coinsCollected + reward, 
+        feedbackMessage: `אלופה! הרווחת ${reward} כוכבים! ⭐`
+      });
       repo.saveUserProgress(USER_ID, get());
       setTimeout(() => get().resetBoard(), 3000);
     } else {
       set({ interactionState: 'error', feedbackMessage: 'כמעט! בואי נספור שוב כמה קוביות יש מכל סוג.'});
+    }
+  },
+
+  buySticker: (stickerId: string, cost: number) => {
+    const state = get();
+    // Double check affordability and lock status
+    if (state.coinsCollected >= cost && !state.unlockedStickers.includes(stickerId)) {
+      set({
+        coinsCollected: state.coinsCollected - cost,
+        unlockedStickers: [...state.unlockedStickers, stickerId]
+      });
+      repo.saveUserProgress(USER_ID, get());
     }
   }
 }));

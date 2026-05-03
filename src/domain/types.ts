@@ -13,7 +13,8 @@ export interface GameState {
   difficulty: DifficultyLevel;
   currentTargetNumber: number;
   placedBlocks: MontessoriBlock[];
-  coinsCollected: number;
+  coinsCollected: number; // Keeping variable name for backward compatibility, visually it's "stars"
+  unlockedStickers: string[]; // NEW: Array of sticker IDs
   consecutiveSuccesses: number;
   interactionState: 'playing' | 'validating' | 'success' | 'error';
   feedbackMessage: string | null; 

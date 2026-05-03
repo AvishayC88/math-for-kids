@@ -24,12 +24,13 @@ export function RecognizeScreen() {
   const thousandsBlocks = store.placedBlocks.filter(b => b.type === 'thousand');
 
   return (
-    // ARCHITECT NOTE: Replaced h-[100dvh] with fixed inset-0 for bulletproof mobile viewport locking.
-    <div className="fixed inset-0 flex flex-col font-sans select-none bg-white overflow-hidden" dir="rtl">
+    // ARCHITECT NOTE: Replaced fixed inset-0 with h-full w-full.
+    // This allows the screen to sit properly underneath the App.tsx navbar.
+    <div className="h-full w-full pt-4 flex flex-col font-sans select-none bg-white overflow-hidden" dir="rtl">
       <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full h-full">
         
         {/* Layer 1: Header - Strictly Fixed */}
-        <div className="text-center pt-4 sm:pt-6 pb-2 shrink-0 px-4">
+        <div className="text-center pt-2 sm:pt-4 pb-2 shrink-0 px-4">
           <h1 className="text-2xl sm:text-5xl font-extrabold text-gray-800 mb-2">
             איזה מספר כתוב כאן?
           </h1>
@@ -42,7 +43,7 @@ export function RecognizeScreen() {
 
           {store.interactionState === 'success' && (
             <div className="mt-1 p-2 sm:p-4 max-w-lg mx-auto bg-green-100 text-green-800 rounded-xl shadow-sm text-sm sm:text-2xl font-bold">
-              אלופה! אספת עוד 10 מטבעות! (סה"כ: {store.coinsCollected})
+              {store.feedbackMessage}
             </div>
           )}
         </div>
@@ -84,7 +85,6 @@ export function RecognizeScreen() {
         </div>
 
         {/* Layer 3: Input Area - Fixed at the bottom, elevated above scroll */}
-        {/* ARCHITECT NOTE: Removed aggressive padding bottom to prevent button clipping */}
         <div className="shrink-0 bg-white border-t-2 border-gray-100 p-4 sm:p-6 z-20 shadow-[0_-10px_20px_rgba(0,0,0,0.02)]">
           <div className="max-w-sm mx-auto flex flex-col gap-3">
             <input

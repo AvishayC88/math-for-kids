@@ -18,6 +18,7 @@ export function GameScreen() {
   const store = useGameStore();
   const [activeDragType, setActiveDragType] = useState<PlaceValue | null>(null);
 
+  // Zero-latency sensors
   const sensors = useSensors(
     useSensor(MouseSensor),
     useSensor(TouchSensor)
@@ -51,7 +52,7 @@ export function GameScreen() {
   };
 
   return (
-    // ARCHITECT NOTE: Using h-full w-full to let App.tsx govern the 100dvh wrapper.
+    // ARCHITECT NOTE: Kept the robust h-full w-full layout.
     <div className="h-full w-full pt-2 sm:pt-4 flex flex-col font-sans select-none overflow-hidden bg-white" dir="rtl">
       
       <div className="flex-1 min-h-0 flex flex-col max-w-6xl mx-auto w-full h-full">
@@ -68,9 +69,10 @@ export function GameScreen() {
             </div>
           )}
 
-          {store.interactionState === 'success' && (
+          {/* ARCHITECT NOTE: Replaced hardcoded "10 coins" string with dynamic store.feedbackMessage */}
+          {store.interactionState === 'success' && store.feedbackMessage && (
             <div className="mt-1 p-2 sm:p-4 max-w-lg mx-auto bg-green-100 text-green-800 rounded-xl shadow-sm text-sm sm:text-2xl font-bold">
-              אלופה! אספת עוד 10 מטבעות! (סה"כ: {store.coinsCollected})
+              {store.feedbackMessage}
             </div>
           )}
         </div>
@@ -118,7 +120,7 @@ export function GameScreen() {
         <div className="bg-gray-100 pb-6 pt-2 sm:pt-4 shrink-0 flex justify-center w-full relative z-20">
           <button 
             onClick={store.checkAnswer}
-            // ARCHITECT NOTE: Fixed Double Submission bug by disabling the button during the success state
+            // ARCHITECT NOTE: Re-applied the Double Submission fix!
             disabled={store.placedBlocks.length === 0 || store.interactionState === 'success'}
             className="w-11/12 sm:w-auto py-3 sm:py-4 px-8 sm:px-16 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white font-bold text-xl sm:text-3xl rounded-2xl shadow-lg transition-transform active:scale-95"
           >
