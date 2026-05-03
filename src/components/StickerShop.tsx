@@ -1,10 +1,10 @@
 import { useGameStore } from '../store/useGameStore';
+import { StarsCounter } from './StarsCounter';
 
 interface Props {
   onClose: () => void;
 }
 
-// ARCHITECT NOTE: Abstracted catalog to allow easy expansion later
 const STICKER_CATALOG = [
   { id: 's1', emoji: '👑', name: 'כתר נסיכה', cost: 50 },
   { id: 's2', emoji: '🦄', name: 'חד קרן', cost: 80 },
@@ -17,34 +17,38 @@ const STICKER_CATALOG = [
 ];
 
 export function StickerShop({ onClose }: Props) {
-  const coinsCollected = useGameStore((state) => state.coinsCollected);
   const unlockedStickers = useGameStore((state) => state.unlockedStickers);
+  const coinsCollected = useGameStore((state) => state.coinsCollected);
   const buySticker = useGameStore((state) => state.buySticker);
 
   return (
     <div className="fixed inset-0 bg-pink-50 z-[100] flex flex-col font-sans select-none" dir="rtl">
       
-      {/* Header */}
-      <div className="bg-white border-b-2 border-pink-200 p-4 flex justify-between items-center shrink-0 shadow-sm">
-        <div className="flex items-center gap-2">
-          <h2 className="text-2xl font-extrabold text-pink-600">ספר המדבקות</h2>
+      {/* Header - EXACT match of App.tsx navbar for visual consistency */}
+      <div className="bg-white border-b-2 border-pink-200 p-2 flex justify-between items-center shrink-0 shadow-sm relative">
+        
+        {/* Right side (in RTL): Stars Counter */}
+        <div className="flex items-center">
+          <StarsCounter />
+        </div>
+
+        {/* Center: Title */}
+        <div className="absolute left-1/2 -translate-x-1/2">
+          <h2 className="text-lg sm:text-2xl font-extrabold text-pink-600">ספר המדבקות</h2>
         </div>
         
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1 bg-yellow-100 px-3 py-1 rounded-full border border-yellow-200">
-            <span className="font-bold text-yellow-700 text-lg">{coinsCollected}</span>
-            <span className="text-yellow-600">⭐</span>
-          </div>
+        {/* Left side (in RTL): Close Button */}
+        <div className="flex items-center">
           <button 
             onClick={onClose}
-            className="w-10 h-10 bg-gray-100 text-gray-600 rounded-full flex items-center justify-center font-bold text-xl hover:bg-gray-200 transition-colors"
+            className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors text-lg sm:text-xl font-bold text-gray-600"
           >
             ✕
           </button>
         </div>
       </div>
 
-      {/* Grid */}
+      {/* Stickers Grid */}
       <div className="flex-1 overflow-y-auto p-4 sm:p-6">
         <div className="max-w-4xl mx-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 pb-20">
           

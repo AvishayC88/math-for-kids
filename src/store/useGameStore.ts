@@ -1,203 +1,179 @@
 import { create } from 'zustand';
-import { MontessoriBlock, GameState, PlaceValue, GameMode, DifficultyLevel } from '../domain/types';
+import { MontessoriBlock, GameState, PlaceValue, GameMode, DifficultyLevel, MathDifficultyLevel } from '../domain/types';
 import { LocalStorageRepository } from '../data/LocalStorageRepository';
 
 const repo = new LocalStorageRepository();
 const USER_ID = 'daughter_user_1';
 
-// Helper to generate physical blocks from an abstract number
-function generateBlocksForNumber(num: number): MontessoriBlock[] {
+function generateBlocksForNumber(num: number, groupId?: 1 | 2): MontessoriBlock[] {
   const blocks: MontessoriBlock[] = [];
   let remaining = num;
-
-  const thousands = Math.floor(remaining / 1000);
-  remaining %= 1000;
-  for(let i=0; i<thousands; i++) blocks.push({ id: Math.random().toString(), type: 'thousand', value: 1000 });
-
-  const hundreds = Math.floor(remaining / 100);
-  remaining %= 100;
-  for(let i=0; i<hundreds; i++) blocks.push({ id: Math.random().toString(), type: 'hundred', value: 100 });
-
-  const tens = Math.floor(remaining / 10);
-  remaining %= 10;
-  for(let i=0; i<tens; i++) blocks.push({ id: Math.random().toString(), type: 'ten', value: 10 });
-
+  const thousands = Math.floor(remaining / 1000); remaining %= 1000;
+  for(let i=0; i<thousands; i++) blocks.push({ id: Math.random().toString(), type: 'thousand', value: 1000, groupId });
+  const hundreds = Math.floor(remaining / 100); remaining %= 100;
+  for(let i=0; i<hundreds; i++) blocks.push({ id: Math.random().toString(), type: 'hundred', value: 100, groupId });
+  const tens = Math.floor(remaining / 10); remaining %= 10;
+  for(let i=0; i<tens; i++) blocks.push({ id: Math.random().toString(), type: 'ten', value: 10, groupId });
   const units = remaining;
-  for(let i=0; i<units; i++) blocks.push({ id: Math.random().toString(), type: 'unit', value: 1 });
-
+  for(let i=0; i<units; i++) blocks.push({ id: Math.random().toString(), type: 'unit', value: 1, groupId });
   return blocks;
 }
 
-// ARCHITECT NOTE: Helper to calculate dynamic rewards
-function getRewardAmount(difficulty: DifficultyLevel): number {
-  if (difficulty === 'thousands') return 30;
-  if (difficulty === 'hundreds') return 20;
-  return 10;
+function generateBlocksForSubtraction(minuend: number, subtrahend: number): MontessoriBlock[] {
+  let reqUnits = subtrahend % 10;
+  let reqTens = Math.floor(subtrahend / 10) % 10;
+  let availUnits = minuend % 10;
+  let availTens = Math.floor(minuend / 10) % 10;
+  let availHundreds = Math.floor(minuend / 100) % 10;
+
+  if (availUnits < reqUnits) {
+    if (availTens > 0) { availTens--; availUnits += 10; }
+    else if (availHundreds > 0) { availHundreds--; availTens += 9; availUnits += 10; }
+  }
+  if (availTens < Math.floor(subtrahend / 10) % 10) {
+    if (availHundreds > 0) { availHundreds--; availTens += 10; }
+  }
+
+  const blocks: MontessoriBlock[] = [];
+  for(let i=0; i<availHundreds; i++) blocks.push({ id: Math.random().toString(), type: 'hundred', value: 100 });
+  for(let i=0; i<availTens; i++) blocks.push({ id: Math.random().toString(), type: 'ten', value: 10 });
+  for(let i=0; i<availUnits; i++) blocks.push({ id: Math.random().toString(), type: 'unit', value: 1 });
+  return blocks;
 }
+
+const MATH_LIMITS: Record<MathDifficultyLevel, number> = { upTo10: 10, upTo20: 20, upTo100: 100, upTo1000: 1000 };
+const MATH_REWARDS: Record<MathDifficultyLevel, number> = { upTo10: 10, upTo20: 15, upTo100: 20, upTo1000: 30 };
 
 interface GameStore extends GameState {
   initGame: () => Promise<void>;
   setGameMode: (mode: GameMode) => void;
   setDifficulty: (level: DifficultyLevel) => void;
+  setMathDifficulty: (level: MathDifficultyLevel) => void;
   addBlock: (type: PlaceValue) => void;
   removeBlock: (id: string) => void;
+  toggleBlockGhostState: (id: string) => void;
   checkAnswer: () => void;
   checkRecognizeAnswer: (inputNumber: number) => void;
+  checkMathAnswer: (inputNumber: number) => void;
+  useLifeline: () => void;
   resetBoard: () => void;
   buySticker: (stickerId: string, cost: number) => void;
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
-  gameMode: 'build',
-  difficulty: 'tens',
-  currentTargetNumber: 0,
-  placedBlocks: [],
-  coinsCollected: 0,
-  unlockedStickers: [],
-  consecutiveSuccesses: 0,
-  interactionState: 'playing',
-  feedbackMessage: null,
+  gameMode: 'build', difficulty: 'tens', mathDifficulty: 'upTo10',
+  currentTargetNumber: 0, currentMathProblem: null, isLifelineUsed: false,
+  placedBlocks: [], coinsCollected: 0, unlockedStickers: [],
+  consecutiveSuccesses: 0, interactionState: 'playing', feedbackMessage: null,
 
   initGame: async () => {
     const savedProgress = await repo.getUserProgress(USER_ID);
-    if (savedProgress) {
-      // Ensure unlockedStickers array exists for returning users with old save data
-      set({ ...savedProgress, unlockedStickers: savedProgress.unlockedStickers || [], interactionState: 'playing', feedbackMessage: null });
-    } else {
-      get().resetBoard();
-    }
+    if (savedProgress) set({ ...savedProgress, unlockedStickers: savedProgress.unlockedStickers || [], interactionState: 'playing', feedbackMessage: null });
+    else get().resetBoard();
   },
 
-  setGameMode: (mode: GameMode) => {
-    set({ gameMode: mode });
-    get().resetBoard();
-  },
-
-  setDifficulty: (level: DifficultyLevel) => {
-    set({ difficulty: level });
-    repo.saveUserProgress(USER_ID, get());
-    get().resetBoard();
-  },
+  setGameMode: (mode: GameMode) => { set({ gameMode: mode }); get().resetBoard(); },
+  setDifficulty: (level: DifficultyLevel) => { set({ difficulty: level }); get().resetBoard(); },
+  setMathDifficulty: (level: MathDifficultyLevel) => { set({ mathDifficulty: level }); get().resetBoard(); },
 
   addBlock: (type: PlaceValue) => {
-    let blockValue = 1;
-    if (type === 'thousand') blockValue = 1000;
-    else if (type === 'hundred') blockValue = 100;
-    else if (type === 'ten') blockValue = 10;
-
-    const newBlock: MontessoriBlock = {
-      id: Math.random().toString(36).substring(2, 11),
-      type: type,
-      value: blockValue,
-    };
-    
-    set((state) => ({
-      placedBlocks: [...state.placedBlocks, newBlock],
-      interactionState: 'playing',
-      feedbackMessage: null
-    }));
+    const val = type === 'thousand' ? 1000 : type === 'hundred' ? 100 : type === 'ten' ? 10 : 1;
+    set((state) => ({ placedBlocks: [...state.placedBlocks, { id: Math.random().toString(), type, value: val }], interactionState: 'playing', feedbackMessage: null }));
   },
 
   removeBlock: (id: string) => {
-    set((state) => ({
-      placedBlocks: state.placedBlocks.filter(b => b.id !== id),
-      interactionState: 'playing',
-      feedbackMessage: null
-    }));
+    set((state) => ({ placedBlocks: state.placedBlocks.filter(b => b.id !== id), interactionState: 'playing', feedbackMessage: null }));
+  },
+
+  toggleBlockGhostState: (id: string) => {
+    set((state) => ({ placedBlocks: state.placedBlocks.map(b => b.id === id ? { ...b, isGhosted: !b.isGhosted } : b) }));
+  },
+
+  useLifeline: () => {
+    const state = get();
+    if (!state.currentMathProblem || state.isLifelineUsed) return;
+    const { num1, num2, operator } = state.currentMathProblem;
+    if (operator === '+') {
+      const blocks1 = generateBlocksForNumber(num1, 1);
+      const blocks2 = generateBlocksForNumber(num2, 2);
+      set({ isLifelineUsed: true, placedBlocks: [...blocks1, ...blocks2] });
+    } else {
+      const blocks = generateBlocksForSubtraction(num1, num2);
+      set({ isLifelineUsed: true, placedBlocks: blocks });
+    }
   },
 
   resetBoard: () => {
-    const diff = get().difficulty;
-    let newTarget = 0;
-    
-    if (diff === 'tens') {
-      newTarget = Math.floor(Math.random() * 99) + 1;
-    } else if (diff === 'hundreds') {
-      const isTens = Math.random() < 0.35;
-      newTarget = isTens ? Math.floor(Math.random() * 90) + 10 : Math.floor(Math.random() * 900) + 100;
-    } else if (diff === 'thousands') {
-      const isHundreds = Math.random() < 0.35;
-      newTarget = isHundreds ? Math.floor(Math.random() * 900) + 100 : Math.floor(Math.random() * 9000) + 1000;
-    }
-
-    const mode = get().gameMode;
-
-    if (mode === 'build') {
-      set({
-        currentTargetNumber: newTarget,
-        placedBlocks: [],
-        interactionState: 'playing',
-        feedbackMessage: null
-      });
+    const state = get();
+    if (state.gameMode === 'math') {
+      const limit = MATH_LIMITS[state.mathDifficulty];
+      const operator = Math.random() > 0.5 ? '+' : '-';
+      let n1, n2;
+      if (operator === '+') {
+        const sum = Math.floor(Math.random() * (limit - 1)) + 2; 
+        n1 = Math.floor(Math.random() * (sum - 1)) + 1; n2 = sum - n1;
+      } else {
+        n1 = Math.floor(Math.random() * (limit - 1)) + 2; 
+        n2 = Math.floor(Math.random() * (n1 - 1)) + 1; 
+      }
+      set({ currentMathProblem: { num1: n1, num2: n2, operator }, placedBlocks: [], isLifelineUsed: false, interactionState: 'playing', feedbackMessage: null });
     } else {
-      const generatedBlocks = generateBlocksForNumber(newTarget);
-      set({
-        currentTargetNumber: newTarget,
-        placedBlocks: generatedBlocks,
-        interactionState: 'playing',
-        feedbackMessage: null
-      });
+      const diff = state.difficulty;
+      let target = 0;
+      if (diff === 'tens') target = Math.floor(Math.random() * 90) + 10;
+      else if (diff === 'hundreds') target = Math.floor(Math.random() * 900) + 100;
+      else target = Math.floor(Math.random() * 9000) + 1000;
+      
+      set({ currentTargetNumber: target, placedBlocks: state.gameMode === 'recognize' ? generateBlocksForNumber(target) : [], interactionState: 'playing', feedbackMessage: null });
+    }
+  },
+
+  checkMathAnswer: (inputNumber: number) => {
+    const state = get();
+    if (!state.currentMathProblem) return;
+    const { num1, num2, operator } = state.currentMathProblem;
+    const expected = operator === '+' ? num1 + num2 : num1 - num2;
+    if (inputNumber === expected) {
+      const reward = state.isLifelineUsed ? Math.ceil(MATH_REWARDS[state.mathDifficulty] / 2) : MATH_REWARDS[state.mathDifficulty];
+      set({ interactionState: 'success', coinsCollected: state.coinsCollected + reward, feedbackMessage: `תשובה נכונה! הרווחת ${reward} כוכבים! ⭐` });
+      repo.saveUserProgress(USER_ID, get());
+      setTimeout(() => get().resetBoard(), 3000);
+    } else {
+      set({ interactionState: 'error', feedbackMessage: 'כמעט... נסי לחשב שוב!' });
     }
   },
 
   checkAnswer: () => {
     const state = get();
-    const currentSum = state.placedBlocks.reduce((acc, b) => acc + b.value, 0);
-
-    const unitsCount = state.placedBlocks.filter(b => b.type === 'unit').length;
-    const tensCount = state.placedBlocks.filter(b => b.type === 'ten').length;
-    const hundredsCount = state.placedBlocks.filter(b => b.type === 'hundred').length;
-
-    let overLimitColumn = '';
-    let requiredExchange = '';
-
-    if (unitsCount >= 10) { overLimitColumn = 'אחדות'; requiredExchange = 'עשרת אחת'; } 
-    else if (tensCount >= 10) { overLimitColumn = 'עשרות'; requiredExchange = 'מאה אחת'; } 
-    else if (hundredsCount >= 10) { overLimitColumn = 'מאות'; requiredExchange = 'אלף אחד'; }
-
-    if (currentSum === state.currentTargetNumber) {
-      if (overLimitColumn) {
-        set({ interactionState: 'error', feedbackMessage: `הסכום נכון! אבל יש לנו יותר מ-9 ${overLimitColumn}. בואי נחליף 10 ${overLimitColumn} ב${requiredExchange}.`});
-      } else {
-        const reward = getRewardAmount(state.difficulty);
-        set({ 
-          interactionState: 'success', 
-          consecutiveSuccesses: state.consecutiveSuccesses + 1, 
-          coinsCollected: state.coinsCollected + reward, 
-          feedbackMessage: `אלופה! הרווחת ${reward} כוכבים! ⭐`
-        });
-        repo.saveUserProgress(USER_ID, get());
-        setTimeout(() => get().resetBoard(), 3000);
-      }
-    } else {
-      set({ interactionState: 'error', feedbackMessage: 'המספר על הלוח לא מתאים. בואי נספור שוב את הבלוקים ששמת.'});
-    }
-  },
-
-  checkRecognizeAnswer: (inputNumber: number) => {
-    const state = get();
-    if (inputNumber === state.currentTargetNumber) {
-      const reward = getRewardAmount(state.difficulty);
-      set({ 
-        interactionState: 'success', 
-        consecutiveSuccesses: state.consecutiveSuccesses + 1, 
-        coinsCollected: state.coinsCollected + reward, 
-        feedbackMessage: `אלופה! הרווחת ${reward} כוכבים! ⭐`
-      });
+    const sum = state.placedBlocks.reduce((acc, b) => acc + b.value, 0);
+    if (sum === state.currentTargetNumber) {
+      const reward = state.difficulty === 'tens' ? 10 : state.difficulty === 'hundreds' ? 20 : 30;
+      set({ interactionState: 'success', coinsCollected: state.coinsCollected + reward, feedbackMessage: `אלופה! הרווחת ${reward} כוכבים! ⭐` });
       repo.saveUserProgress(USER_ID, get());
       setTimeout(() => get().resetBoard(), 3000);
     } else {
-      set({ interactionState: 'error', feedbackMessage: 'כמעט! בואי נספור שוב כמה קוביות יש מכל סוג.'});
+      set({ interactionState: 'error', feedbackMessage: 'המספר לא מתאים, בואי ננסה שוב.' });
     }
   },
 
-  buySticker: (stickerId: string, cost: number) => {
+  checkRecognizeAnswer: (input: number) => {
     const state = get();
-    // Double check affordability and lock status
-    if (state.coinsCollected >= cost && !state.unlockedStickers.includes(stickerId)) {
+    if (input === state.currentTargetNumber) {
+      const reward = state.difficulty === 'tens' ? 10 : state.difficulty === 'hundreds' ? 20 : 30;
+      set({ interactionState: 'success', coinsCollected: state.coinsCollected + reward, feedbackMessage: `נכון מאוד! הרווחת ${reward} כוכבים! ⭐` });
+      repo.saveUserProgress(USER_ID, get());
+      setTimeout(() => get().resetBoard(), 3000);
+    } else {
+      set({ interactionState: 'error', feedbackMessage: 'לא בדיוק, בואי נספור שוב.' });
+    }
+  },
+
+  buySticker: (id: string, cost: number) => {
+    const state = get();
+    if (state.coinsCollected >= cost && !state.unlockedStickers.includes(id)) {
       set({
         coinsCollected: state.coinsCollected - cost,
-        unlockedStickers: [...state.unlockedStickers, stickerId]
+        unlockedStickers: [...state.unlockedStickers, id]
       });
       repo.saveUserProgress(USER_ID, get());
     }
