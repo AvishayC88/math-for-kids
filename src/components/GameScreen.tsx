@@ -60,7 +60,7 @@ export function GameScreen() {
         {/* Header - Fixed */}
         <div className="text-center pb-2 sm:pb-6 shrink-0 px-2">
           <h1 className="text-2xl sm:text-5xl font-extrabold text-gray-800 mb-2">
-            בני את המספר: <span className="text-purple-600">{store.currentTargetNumber}</span>
+            בנו את המספר: <span className="text-purple-600">{store.currentTargetNumber}</span>
           </h1>
           
           {store.interactionState === 'error' && store.feedbackMessage && (
