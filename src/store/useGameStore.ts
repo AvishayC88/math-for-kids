@@ -5,6 +5,9 @@ import { LocalStorageRepository } from '../data/LocalStorageRepository';
 const repo = new LocalStorageRepository();
 const USER_ID = 'daughter_user_1';
 
+const BUILD_LEVELS: DifficultyLevel[] = ['tens', 'hundreds', 'thousands'];
+const MATH_LEVELS: MathDifficultyLevel[] = ['upTo10', 'upTo20', 'upTo100', 'upTo1000'];
+
 function generateBlocksForNumber(num: number, groupId?: 1 | 2): MontessoriBlock[] {
   const blocks: MontessoriBlock[] = [];
   let remaining = num;
@@ -42,13 +45,13 @@ function generateBlocksForSubtraction(minuend: number, subtrahend: number): Mont
 }
 
 const MATH_LIMITS: Record<MathDifficultyLevel, number> = { upTo10: 10, upTo20: 20, upTo100: 100, upTo1000: 1000 };
-const MATH_REWARDS: Record<MathDifficultyLevel, number> = { upTo10: 10, upTo20: 15, upTo100: 20, upTo1000: 30 };
 
 interface GameStore extends GameState {
   initGame: () => Promise<void>;
   setGameMode: (mode: GameMode) => void;
   setDifficulty: (level: DifficultyLevel) => void;
   setMathDifficulty: (level: MathDifficultyLevel) => void;
+  toggleLevelLock: (levelId: string, type: 'build' | 'math') => void;
   addBlock: (type: PlaceValue) => void;
   removeBlock: (id: string) => void;
   toggleBlockGhostState: (id: string) => void;
@@ -61,20 +64,49 @@ interface GameStore extends GameState {
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
-  gameMode: 'build', difficulty: 'tens', mathDifficulty: 'upTo10',
+  gameMode: 'build', difficulty: 'tens', mathDifficulty: 'upTo10', lockedLevels: {},
   currentTargetNumber: 0, currentMathProblem: null, isLifelineUsed: false,
   placedBlocks: [], coinsCollected: 0, unlockedStickers: [],
   consecutiveSuccesses: 0, interactionState: 'playing', feedbackMessage: null,
 
   initGame: async () => {
     const savedProgress = await repo.getUserProgress(USER_ID);
-    if (savedProgress) set({ ...savedProgress, unlockedStickers: savedProgress.unlockedStickers || [], interactionState: 'playing', feedbackMessage: null });
+    if (savedProgress) set({ ...savedProgress, unlockedStickers: savedProgress.unlockedStickers || [], lockedLevels: savedProgress.lockedLevels || {}, interactionState: 'playing', feedbackMessage: null });
     else get().resetBoard();
   },
 
   setGameMode: (mode: GameMode) => { set({ gameMode: mode }); get().resetBoard(); },
   setDifficulty: (level: DifficultyLevel) => { set({ difficulty: level }); get().resetBoard(); },
   setMathDifficulty: (level: MathDifficultyLevel) => { set({ mathDifficulty: level }); get().resetBoard(); },
+  
+  toggleLevelLock: (levelId: string, type: 'build' | 'math') => {
+    set((state) => {
+      const isCurrentlyLocked = !!state.lockedLevels[levelId];
+      
+      // ARCHITECT NOTE: Anti-Brick mechanism. Cannot lock the very last available level in a category.
+      if (!isCurrentlyLocked) {
+        const allLevels = type === 'build' ? BUILD_LEVELS as string[] : MATH_LEVELS as string[];
+        const unlockedCount = allLevels.filter(l => l !== levelId && !state.lockedLevels[l]).length;
+        if (unlockedCount === 0) return state; 
+      }
+
+      const newLockedLevels = { ...state.lockedLevels, [levelId]: !isCurrentlyLocked };
+      const newState: Partial<GameStore> = { lockedLevels: newLockedLevels };
+
+      // ARCHITECT NOTE: Fallback logic. If the user was ON the level we just locked, bump them to the first available open level.
+      if (!isCurrentlyLocked) {
+        if (type === 'build' && state.difficulty === levelId) {
+          newState.difficulty = BUILD_LEVELS.find(l => !newLockedLevels[l]) as DifficultyLevel;
+        } else if (type === 'math' && state.mathDifficulty === levelId) {
+          newState.mathDifficulty = MATH_LEVELS.find(l => !newLockedLevels[l]) as MathDifficultyLevel;
+        }
+      }
+
+      return newState;
+    });
+    repo.saveUserProgress(USER_ID, get());
+    get().resetBoard();
+  },
 
   addBlock: (type: PlaceValue) => {
     const val = type === 'thousand' ? 1000 : type === 'hundred' ? 100 : type === 'ten' ? 10 : 1;
@@ -117,14 +149,35 @@ export const useGameStore = create<GameStore>((set, get) => ({
         n2 = Math.floor(Math.random() * (n1 - 1)) + 1; 
       }
       set({ currentMathProblem: { num1: n1, num2: n2, operator }, placedBlocks: [], isLifelineUsed: false, interactionState: 'playing', feedbackMessage: null });
-    } else {
+} else {
       const diff = state.difficulty;
       let target = 0;
-      if (diff === 'tens') target = Math.floor(Math.random() * 90) + 10;
-      else if (diff === 'hundreds') target = Math.floor(Math.random() * 900) + 100;
-      else target = Math.floor(Math.random() * 9000) + 1000;
       
-      set({ currentTargetNumber: target, placedBlocks: state.gameMode === 'recognize' ? generateBlocksForNumber(target) : [], interactionState: 'playing', feedbackMessage: null });
+      if (diff === 'tens') {
+        // Generate a number between 1 and 99
+        target = Math.floor(Math.random() * 99) + 1;
+      } 
+      else if (diff === 'hundreds') {
+        // TWEAK HERE: 0.1 means 10% chance to get a 2-digit number instead of 3-digit
+        const isTens = Math.random() < 0.15; 
+        target = isTens 
+          ? Math.floor(Math.random() * 90) + 10 
+          : Math.floor(Math.random() * 900) + 100;
+      } 
+      else if (diff === 'thousands') {
+        // TWEAK HERE: 0.2 means 20% chance to get a 3-digit number instead of 4-digit
+        const isHundreds = Math.random() < 0.2; 
+        target = isHundreds 
+          ? Math.floor(Math.random() * 900) + 100 
+          : Math.floor(Math.random() * 9000) + 1000;
+      }
+      
+      set({ 
+        currentTargetNumber: target, 
+        placedBlocks: state.gameMode === 'recognize' ? generateBlocksForNumber(target) : [], 
+        interactionState: 'playing', 
+        feedbackMessage: null 
+      });
     }
   },
 
@@ -133,9 +186,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
     if (!state.currentMathProblem) return;
     const { num1, num2, operator } = state.currentMathProblem;
     const expected = operator === '+' ? num1 + num2 : num1 - num2;
+    
     if (inputNumber === expected) {
-      const reward = state.isLifelineUsed ? Math.ceil(MATH_REWARDS[state.mathDifficulty] / 2) : MATH_REWARDS[state.mathDifficulty];
-      set({ interactionState: 'success', coinsCollected: state.coinsCollected + reward, feedbackMessage: `תשובה נכונה! הרווחת ${reward} כוכבים! ⭐` });
+      const maxNumInvolved = operator === '+' ? expected : num1; 
+      let baseReward = 10; 
+      if (maxNumInvolved > 100) baseReward = 30;
+      else if (maxNumInvolved > 20) baseReward = 20;
+      else if (maxNumInvolved > 10) baseReward = 15;
+
+      const finalReward = state.isLifelineUsed ? Math.ceil(baseReward / 2) : baseReward;
+      
+      set({ interactionState: 'success', coinsCollected: state.coinsCollected + finalReward, feedbackMessage: `תשובה נכונה! הרווחת ${finalReward} כוכבים! ⭐` });
       repo.saveUserProgress(USER_ID, get());
       setTimeout(() => get().resetBoard(), 3000);
     } else {
@@ -143,7 +204,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
   },
 
-  checkAnswer: () => {
+  checkAnswer: () => { 
     const state = get();
     const sum = state.placedBlocks.reduce((acc, b) => acc + b.value, 0);
     if (sum === state.currentTargetNumber) {
@@ -156,7 +217,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
   },
 
-  checkRecognizeAnswer: (input: number) => {
+  checkRecognizeAnswer: (input: number) => { 
     const state = get();
     if (input === state.currentTargetNumber) {
       const reward = state.difficulty === 'tens' ? 10 : state.difficulty === 'hundreds' ? 20 : 30;
@@ -171,10 +232,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   buySticker: (id: string, cost: number) => {
     const state = get();
     if (state.coinsCollected >= cost && !state.unlockedStickers.includes(id)) {
-      set({
-        coinsCollected: state.coinsCollected - cost,
-        unlockedStickers: [...state.unlockedStickers, id]
-      });
+      set({ coinsCollected: state.coinsCollected - cost, unlockedStickers: [...state.unlockedStickers, id] });
       repo.saveUserProgress(USER_ID, get());
     }
   }

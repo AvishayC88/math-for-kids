@@ -8,8 +8,8 @@ export interface MontessoriBlock {
   id: string;
   type: PlaceValue;
   value: number;
-  groupId?: 1 | 2; // Used to separate blocks visually in addition
-  isGhosted?: boolean; // Used for the toggle mechanism in subtraction
+  groupId?: 1 | 2; 
+  isGhosted?: boolean; 
 }
 
 export interface MathProblem {
@@ -22,6 +22,8 @@ export interface GameState {
   gameMode: GameMode;
   difficulty: DifficultyLevel;
   mathDifficulty: MathDifficultyLevel; 
+  // ARCHITECT NOTE: Scalable locking system replacing the hardcoded level 1 lock
+  lockedLevels: Record<string, boolean>; 
   currentTargetNumber: number;
   currentMathProblem: MathProblem | null;
   isLifelineUsed: boolean;
