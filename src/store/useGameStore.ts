@@ -200,7 +200,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       repo.saveUserProgress(USER_ID, get());
       setTimeout(() => get().resetBoard(), 3000);
     } else {
-      set({ interactionState: 'error', feedbackMessage: 'כמעט... נסי לחשב שוב!' });
+      set({ interactionState: 'error', feedbackMessage: 'כמעט... נסו לחשב שוב!' });
     }
   },
 
@@ -209,11 +209,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const sum = state.placedBlocks.reduce((acc, b) => acc + b.value, 0);
     if (sum === state.currentTargetNumber) {
       const reward = state.difficulty === 'tens' ? 10 : state.difficulty === 'hundreds' ? 20 : 30;
-      set({ interactionState: 'success', coinsCollected: state.coinsCollected + reward, feedbackMessage: `אלופה! הרווחת ${reward} כוכבים! ⭐` });
+      set({ interactionState: 'success', coinsCollected: state.coinsCollected + reward, feedbackMessage: `אלופים! הרווחתם ${reward} כוכבים! ⭐` });
       repo.saveUserProgress(USER_ID, get());
       setTimeout(() => get().resetBoard(), 3000);
     } else {
-      set({ interactionState: 'error', feedbackMessage: 'המספר לא מתאים, בואי ננסה שוב.' });
+      set({ interactionState: 'error', feedbackMessage: 'המספר לא מתאים, בואו ננסה שוב.' });
     }
   },
 

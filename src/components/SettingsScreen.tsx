@@ -87,7 +87,7 @@ export function SettingsScreen({ onClose }: Props) {
         <div className="w-full max-w-sm flex flex-col gap-4 mt-4">
           <div className="text-center mb-2">
             <h3 className="text-xl font-bold text-gray-500 mb-2">{isMathMode ? 'רמת תרגילים' : 'רמת המספרים'}</h3>
-            <p className="text-sm text-gray-400">{isMathMode ? 'בחרי את גבול התוצאה לתרגילים' : 'בחרי אילו מספרים יופיעו במשחק'}</p>
+            <p className="text-sm text-gray-400">{isMathMode ? 'בחרו את גבול התוצאה לתרגילים' : 'בחרו אילו מספרים יופיעו במשחק'}</p>
           </div>
 
           {currentOptions.map(opt => {

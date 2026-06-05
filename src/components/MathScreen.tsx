@@ -69,7 +69,7 @@ export function MathScreen() {
               {operator === '-' && (
                 <div className="w-full flex flex-col items-center gap-4 bg-red-50/30 p-6 rounded-3xl border-2 border-red-100">
                   <div className="bg-white px-6 py-2 rounded-full border-2 border-red-200 text-red-600 font-bold shadow-sm animate-pulse">
-                    החסירי {num2} קוביות (לחצי עליהן) 👇
+                    החסירו {num2} קוביות (לחצו עליהן) 👇
                   </div>
                   <div dir="ltr" className="flex flex-row flex-wrap gap-2 justify-center">
                     {store.placedBlocks.map((b, idx) => (
