@@ -116,16 +116,40 @@ export function GameScreen() {
           </DragOverlay>
         </DndContext>
 
-        {/* Action Button - Strictly Fixed at the very bottom */}
-        <div className="bg-gray-100 pb-6 pt-2 sm:pt-4 shrink-0 flex justify-center w-full relative z-20">
-          <button 
-            onClick={store.checkAnswer}
-            // ARCHITECT NOTE: Re-applied the Double Submission fix!
-            disabled={store.placedBlocks.length === 0 || store.interactionState === 'success'}
-            className="w-11/12 sm:w-auto py-3 sm:py-4 px-8 sm:px-16 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white font-bold text-xl sm:text-3xl rounded-2xl shadow-lg transition-transform active:scale-95"
-          >
-            בדוק אותי!
-          </button>
+        {/* ARCHITECT FIX: Action Buttons Container - Strictly Fixed at the very bottom, properly stacked using flex-col */}
+        <div className="bg-gray-100 pb-6 pt-2 sm:pt-4 shrink-0 w-full relative z-20 px-4">
+          <div className="w-full max-w-sm mx-auto flex flex-col gap-3">
+            
+            <button 
+              onClick={store.checkAnswer}
+              disabled={store.placedBlocks.length === 0 || store.interactionState === 'success'}
+              className="w-full py-3 sm:py-4 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white font-bold text-xl sm:text-3xl rounded-2xl shadow-lg transition-transform active:scale-95"
+            >
+              בדוק אותי!
+            </button>
+            
+            {/* ARCHITECT ADDITION: Strict Economy Skip Button */}
+            <div className="flex flex-col gap-1">
+              <button
+                onClick={store.skipProblem}
+                disabled={store.coinsCollected < 10 || store.interactionState === 'success'}
+                className={`w-full py-3 rounded-2xl font-bold text-lg transition-all border-2 ${
+                  store.coinsCollected >= 10 && store.interactionState !== 'success'
+                    ? 'bg-orange-50 text-orange-700 border-orange-300 hover:bg-orange-100 active:scale-95 cursor-pointer'
+                    : 'bg-gray-50 text-gray-400 border-gray-200 opacity-80 cursor-not-allowed'
+                }`}
+              >
+                דלגו על השלב (עולה 10 ⭐)
+              </button>
+              
+              {store.coinsCollected < 10 && store.interactionState !== 'success' && (
+                <span className="text-xs font-bold text-red-500 text-center px-2 animate-pulse mt-1">
+                  אין מספיק כוכבים! שחקו במסכים אחרים כדי להרוויח עוד.
+                </span>
+              )}
+            </div>
+
+          </div>
         </div>
       </div>
     </div>

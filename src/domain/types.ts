@@ -22,12 +22,22 @@ export interface GameState {
   gameMode: GameMode;
   difficulty: DifficultyLevel;
   mathDifficulty: MathDifficultyLevel; 
-  // ARCHITECT NOTE: Scalable locking system replacing the hardcoded level 1 lock
   lockedLevels: Record<string, boolean>; 
+  
+  // Active view variables
   currentTargetNumber: number;
   currentMathProblem: MathProblem | null;
   isLifelineUsed: boolean;
   placedBlocks: MontessoriBlock[];
+
+  // ARCHITECT FIX: Background Persistence states for independent tabs
+  savedBuildTarget?: number;
+  savedBuildBlocks?: MontessoriBlock[];
+  savedRecognizeTarget?: number;
+  savedMathProblem?: MathProblem | null;
+  savedMathBlocks?: MontessoriBlock[];
+  savedMathLifeline?: boolean;
+
   coinsCollected: number; 
   unlockedStickers: string[];
   consecutiveSuccesses: number;

@@ -105,9 +105,28 @@ export function RecognizeScreen() {
             >
               בדוק אותי!
             </button>
+            {/* ARCHITECT ADDITION: Strict Economy Skip Button */}
+            <div className="flex flex-col gap-1 mt-2">
+              <button
+                onClick={store.skipProblem}
+                disabled={store.coinsCollected < 10 || store.interactionState === 'success'}
+                className={`w-full py-3 rounded-2xl font-bold text-lg transition-all border-2 ${
+                  store.coinsCollected >= 10 && store.interactionState !== 'success'
+                    ? 'bg-orange-50 text-orange-700 border-orange-300 hover:bg-orange-100 active:scale-95 cursor-pointer'
+                    : 'bg-gray-50 text-gray-400 border-gray-200 opacity-80 cursor-not-allowed'
+                }`}
+              >
+                דלגו על השלב (עולה 10 ⭐)
+              </button>
+              
+              {store.coinsCollected < 10 && store.interactionState !== 'success' && (
+                <span className="text-xs font-bold text-red-500 text-center px-2 animate-pulse mt-1">
+                  אין מספיק כוכבים! שחקו במסכים אחרים כדי להרוויח עוד.
+                </span>
+              )}
+            </div>
           </div>
         </div>
-
       </div>
     </div>
   );
