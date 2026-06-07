@@ -58,7 +58,7 @@ interface GameStore extends GameState {
   checkAnswer: () => void;
   checkRecognizeAnswer: (inputNumber: number) => void;
   checkMathAnswer: (inputNumber: number) => void;
-  skipProblem: () => void; // ARCHITECT NOTE: Renamed to universal skip
+  skipProblem: () => void;
   useLifeline: () => void;
   resetBoard: () => void;
   buySticker: (stickerId: string, cost: number) => void;
@@ -76,7 +76,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
       set({ ...savedProgress, unlockedStickers: savedProgress.unlockedStickers || [], lockedLevels: savedProgress.lockedLevels || {}, interactionState: 'playing', feedbackMessage: null });
       
       const state = get();
-      // ARCHITECT FIX: Safe initialization from persistent background states
       if (state.gameMode === 'recognize') {
           if (!state.currentTargetNumber && !state.savedRecognizeTarget) get().resetBoard();
           else set({ currentTargetNumber: state.currentTargetNumber || state.savedRecognizeTarget, placedBlocks: generateBlocksForNumber(state.currentTargetNumber || state.savedRecognizeTarget!) });
@@ -98,7 +97,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const state = get();
     if (state.gameMode === mode) return;
 
-    // 1. SAVE Current Mode's State
     const updates: Partial<GameStore> = {};
     if (state.gameMode === 'build') {
         updates.savedBuildTarget = state.currentTargetNumber;
@@ -111,13 +109,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
         updates.savedMathLifeline = state.isLifelineUsed;
     }
 
-    // 2. Switch Mode
     updates.gameMode = mode;
     updates.interactionState = 'playing';
     updates.feedbackMessage = null;
     set(updates);
 
-    // 3. LOAD or GENERATE New Mode's State
     const newState = get();
     if (mode === 'build') {
         if (!newState.savedBuildTarget) get().resetBoard();
@@ -221,7 +217,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       if (diff === 'tens') {
         target = Math.floor(Math.random() * 99) + 1;
       } else if (diff === 'hundreds') {
-        const isTens = Math.random() < 0.15; 
+        const isTens = Math.random() < 0.20; 
         target = isTens ? Math.floor(Math.random() * 90) + 10 : Math.floor(Math.random() * 900) + 100;
       } else if (diff === 'thousands') {
         const isHundreds = Math.random() < 0.20; 
@@ -262,11 +258,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
   },
 
+  // ARCHITECT FIX: Dynamic rewards based on actual number for Build mode
   checkAnswer: () => { 
     const state = get();
     const sum = state.placedBlocks.reduce((acc, b) => acc + b.value, 0);
     if (sum === state.currentTargetNumber) {
-      const reward = state.difficulty === 'tens' ? 10 : state.difficulty === 'hundreds' ? 20 : 30;
+      let reward = 10;
+      if (state.currentTargetNumber >= 1000) reward = 30;
+      else if (state.currentTargetNumber >= 100) reward = 20;
+
       set({ interactionState: 'success', coinsCollected: state.coinsCollected + reward, feedbackMessage: `כל הכבוד! הרווחתם ${reward} כוכבים! ⭐` });
       repo.saveUserProgress(USER_ID, get());
       setTimeout(() => get().resetBoard(), 3000);
@@ -275,10 +275,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
   },
 
+  // ARCHITECT FIX: Dynamic rewards based on actual number for Recognize mode
   checkRecognizeAnswer: (input: number) => { 
     const state = get();
     if (input === state.currentTargetNumber) {
-      const reward = state.difficulty === 'tens' ? 10 : state.difficulty === 'hundreds' ? 20 : 30;
+      let reward = 10;
+      if (state.currentTargetNumber >= 1000) reward = 30;
+      else if (state.currentTargetNumber >= 100) reward = 20;
+
       set({ interactionState: 'success', coinsCollected: state.coinsCollected + reward, feedbackMessage: `נכון מאוד! הרווחתם ${reward} כוכבים! ⭐` });
       repo.saveUserProgress(USER_ID, get());
       setTimeout(() => get().resetBoard(), 3000);

@@ -97,7 +97,7 @@ export function MathScreen() {
               onChange={(e) => setInputValue(e.target.value)} 
               disabled={store.interactionState === 'success'} 
               placeholder="התשובה היא..." 
-              className="w-full text-center text-4xl sm:text-5xl font-black text-purple-700 bg-purple-50 border-4 border-purple-300 rounded-2xl py-3 focus:outline-none" 
+              className="w-full text-center text-4xl sm:text-4xl font-black text-purple-700 bg-purple-50 border-4 border-purple-300 rounded-2xl py-3 focus:outline-none" 
             />
             <button 
               onClick={handleSubmit} 

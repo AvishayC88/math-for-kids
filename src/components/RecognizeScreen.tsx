@@ -94,8 +94,8 @@ export function RecognizeScreen() {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               disabled={store.interactionState === 'success'}
-              placeholder="הקלידו כאן..."
-              className="w-full text-center text-4xl sm:text-5xl font-black text-purple-700 bg-purple-50 border-4 border-purple-300 rounded-2xl py-3 focus:outline-none focus:border-purple-600 focus:ring-4 ring-purple-200 transition-all placeholder:text-purple-300 placeholder:text-2xl"
+              placeholder="התשובה היא..."
+              className="w-full text-center text-4xl sm:text-4xl font-black text-purple-700 bg-purple-50 border-4 border-purple-300 rounded-2xl py-3 focus:outline-none" 
             />
             
             <button 
