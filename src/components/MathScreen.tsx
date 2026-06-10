@@ -24,7 +24,9 @@ export function MathScreen() {
         <div className="text-center pt-2 sm:pt-6 pb-2 shrink-0 px-4">
           <div dir="ltr" className="flex justify-center items-center gap-4 mb-4">
              <span className="text-6xl sm:text-8xl font-black text-gray-800">{num1}</span>
-             <span className="text-4xl sm:text-6xl font-bold text-purple-500">{operator}</span>
+             <span className="text-4xl sm:text-6xl font-bold text-purple-500">
+               {operator === '*' ? '×' : operator === '/' ? '÷' : operator}
+             </span>
              <span className="text-6xl sm:text-8xl font-black text-gray-800">{num2}</span>
              <span className="text-4xl sm:text-6xl font-bold text-purple-500">=</span>
              <span className="text-6xl sm:text-8xl font-black text-purple-200">?</span>
@@ -79,6 +81,27 @@ export function MathScreen() {
                         onClick={() => store.toggleBlockGhostState(b.id)} 
                       />
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {(operator === '*' || operator === '/') && (
+                <div className="w-full flex flex-col items-center gap-4 bg-purple-50/30 p-6 rounded-3xl border-2 border-purple-100 max-h-80 sm:max-h-96 overflow-y-auto">
+                  <div className="bg-white px-4 sm:px-6 py-2 rounded-full border-2 border-purple-200 text-purple-600 font-bold shadow-sm text-center">
+                    {operator === '*' ? `יש כאן ${num1} קבוצות של ${num2}` : `חילקנו ${num1} ל-${num2} קבוצות שוות`} 👇
+                  </div>
+                  <div className="flex flex-col gap-4 w-full px-2" dir="ltr">
+                    {Array.from({ length: operator === '*' ? num1 : num2 }).map((_, idx) => {
+                      const gId = idx + 1;
+                      const groupBlocks = store.placedBlocks.filter(b => b.groupId === gId);
+                      return (
+                        <div key={`group-${gId}`} className="bg-white/80 p-3 rounded-2xl border-2 border-purple-200 flex flex-wrap gap-2 justify-center shadow-sm">
+                          {groupBlocks.map((b, bIdx) => (
+                            <MontessoriBlock key={`g${gId}-${bIdx}`} id={b.id} type={b.type} />
+                          ))}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}

@@ -18,6 +18,9 @@ export function SettingsScreen({ onClose }: Props) {
   const lockedLevels = useGameStore((state) => state.lockedLevels);
   const toggleLevelLock = useGameStore((state) => state.toggleLevelLock);
   
+  const allowedOperators = useGameStore((state) => state.allowedOperators) || ['+', '-'];
+  const toggleOperator = useGameStore((state) => state.toggleOperator);
+  
   const [secretTaps, setSecretTaps] = useState(0);
 
   const isMathMode = gameMode === 'math';
@@ -81,6 +84,32 @@ export function SettingsScreen({ onClose }: Props) {
                  );
                })}
             </div>
+
+            {isMathMode && (
+              <>
+                <div className="w-full h-px bg-red-200 my-2"></div>
+                <span className="text-xs text-red-500 mb-2 font-bold">נעילת סוגי תרגילים (חובה להשאיר לפחות אחד)</span>
+                <div className="flex flex-wrap gap-2 justify-center" dir="rtl">
+                  {[
+                    { id: '+', label: 'חיבור (+)' },
+                    { id: '-', label: 'חיסור (-)' },
+                    { id: '*', label: 'כפל (×)' },
+                    { id: '/', label: 'חילוק (÷)' },
+                  ].map(op => {
+                    const isLocked = !!lockedLevels[op.id];
+                    return (
+                      <button
+                        key={`op-${op.id}`}
+                        onClick={() => toggleLevelLock(op.id, 'operator')}
+                        className={`px-4 py-2 rounded-full font-bold text-sm text-white transition-all active:scale-95 shadow-sm ${isLocked ? 'bg-red-500' : 'bg-green-500'}`}
+                      >
+                        {op.label} {isLocked ? '🔒' : '✅'}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
         )}
 
@@ -117,6 +146,50 @@ export function SettingsScreen({ onClose }: Props) {
             );
           })}
         </div>
+
+        {isMathMode && (
+          <div className="w-full max-w-sm flex flex-col gap-4 mt-8 pb-8">
+            <div className="text-center mb-2">
+              <h3 className="text-xl font-bold text-gray-500 mb-2">סוגי תרגילים</h3>
+              <p className="text-sm text-gray-400">בחרו אילו סוגי תרגילים יופיעו במשחק</p>
+            </div>
+            <div className="grid grid-cols-2 gap-4" dir="rtl">
+              {[
+                { id: '+' as const, label: 'חיבור (+)' },
+                { id: '-' as const, label: 'חיסור (-)' },
+                { id: '*' as const, label: 'כפל (×)' },
+                { id: '/' as const, label: 'חילוק (÷)' },
+              ].map(op => {
+                const isLocked = !!lockedLevels[op.id];
+                const isActive = allowedOperators.includes(op.id);
+
+                let styleClass = '';
+                if (isLocked) {
+                  styleClass = 'bg-gray-100 border-gray-200 text-gray-400 opacity-60';
+                } else if (isActive) {
+                  styleClass = 'bg-purple-100 border-purple-500 text-purple-700 shadow-sm scale-105';
+                } else {
+                  styleClass = 'bg-white border-gray-200 text-gray-600 hover:bg-gray-100';
+                }
+
+                return (
+                  <button
+                    key={op.id}
+                    onClick={() => {
+                      if (!isLocked) toggleOperator(op.id);
+                    }}
+                    disabled={isLocked}
+                    className={`py-3 rounded-xl font-bold text-lg transition-all border-2 flex justify-center items-center gap-2 ${styleClass}`}
+                  >
+                    {op.label}
+                    {isLocked && <span className="text-sm">🔒</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );

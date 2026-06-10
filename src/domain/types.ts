@@ -8,14 +8,14 @@ export interface MontessoriBlock {
   id: string;
   type: PlaceValue;
   value: number;
-  groupId?: 1 | 2; 
+  groupId?: number; 
   isGhosted?: boolean; 
 }
 
 export interface MathProblem {
   num1: number;
   num2: number;
-  operator: '+' | '-';
+  operator: '+' | '-' | '*' | '/';
 }
 
 export interface GameState {
@@ -23,6 +23,8 @@ export interface GameState {
   difficulty: DifficultyLevel;
   mathDifficulty: MathDifficultyLevel; 
   lockedLevels: Record<string, boolean>; 
+  allowedOperators: ('+' | '-' | '*' | '/')[];
+
   
   // Active view variables
   currentTargetNumber: number;
