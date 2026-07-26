@@ -45,6 +45,7 @@ export function SettingsScreen({ onClose }: Props) {
 
   const handleSelect = (id: string) => {
     if (lockedLevels[id]) return;
+    if (id === currentSelected) { onClose(); return; }
     if (isMathMode) setMathDifficulty(id as MathDifficultyLevel);
     else setDifficulty(id as DifficultyLevel);
     onClose();

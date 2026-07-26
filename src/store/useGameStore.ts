@@ -130,10 +130,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
     repo.saveUserProgress(USER_ID, get());
   },
 
-  setDifficulty: (level: DifficultyLevel) => { set({ difficulty: level }); get().resetBoard(); },
-  setMathDifficulty: (level: MathDifficultyLevel) => { set({ mathDifficulty: level }); get().resetBoard(); },
+  setDifficulty: (level: DifficultyLevel) => { set({ difficulty: level }); repo.saveUserProgress(USER_ID, get()); },
+  setMathDifficulty: (level: MathDifficultyLevel) => { set({ mathDifficulty: level }); repo.saveUserProgress(USER_ID, get()); },
 
   toggleLevelLock: (levelId: string, type: 'build' | 'math' | 'operator') => {
+    // Snapshot before set() so we can detect if the active level changed
+    const prevDifficulty = get().difficulty;
+    const prevMathDifficulty = get().mathDifficulty;
     set((state) => {
       const isCurrentlyLocked = !!state.lockedLevels[levelId];
       if (!isCurrentlyLocked) {
@@ -161,8 +164,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }
       return newState;
     });
-    repo.saveUserProgress(USER_ID, get());
-    get().resetBoard();
+    // Only reset if the active level was locked away (forcing a switch to a different level)
+    const next = get();
+    const activeLevelChanged = next.difficulty !== prevDifficulty || next.mathDifficulty !== prevMathDifficulty;
+    repo.saveUserProgress(USER_ID, next);
+    if (activeLevelChanged) get().resetBoard();
   },
 
   toggleOperator: (operator) => {
@@ -176,8 +182,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
       return { allowedOperators: newOperators };
     });
-    repo.saveUserProgress(USER_ID, get());
-    get().resetBoard();
+    // Only reset if the current problem's operator is no longer allowed
+    const next = get();
+    const currentOp = next.currentMathProblem?.operator;
+    const operatorInvalidated = !!currentOp && !next.allowedOperators.includes(currentOp);
+    repo.saveUserProgress(USER_ID, next);
+    if (operatorInvalidated) get().resetBoard();
   },
 
   addBlock: (type: PlaceValue) => {
