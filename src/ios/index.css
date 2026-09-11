@@ -1,0 +1,151 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+/* Apply once per full-screen surface, including settings and stickers. */
+.app-shell,
+.safe-screen {
+  height: 100dvh;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+}
+
+.app-navigation {
+  grid-template-columns: 1fr auto;
+}
+
+.game-modes {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
+.app-navigation > :last-child {
+  justify-self: end;
+  grid-column: 2;
+  grid-row: 1;
+}
+
+button {
+  min-width: 44px;
+  min-height: 44px;
+  touch-action: manipulation;
+}
+
+button:focus-visible,
+[role="button"]:focus-visible {
+  outline: 3px solid #7c3aed;
+  outline-offset: 3px;
+}
+
+.activity-screen {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+
+.activity-content {
+  min-height: 100%;
+  height: auto;
+}
+
+.activity-content > * {
+  flex-shrink: 0;
+}
+
+.safe-screen > .overflow-y-auto {
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+}
+
+.safe-screen > .overflow-y-auto > * {
+  flex-shrink: 0;
+}
+
+.build-board {
+  min-height: 180px;
+  flex-basis: auto;
+}
+
+/* Block counts must not change the height of the iOS screen. */
+.app-shell[data-platform="ios"] :is(.build-screen, .recognize-screen) {
+  overflow: hidden;
+}
+
+.app-shell[data-platform="ios"] :is(.build-screen, .recognize-screen) > .activity-content {
+  height: 100%;
+  min-height: 0;
+}
+
+.app-shell[data-platform="ios"] :is(.build-board, .recognize-blocks) {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.app-shell[data-platform="ios"] .drop-zone {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.app-shell[data-platform="ios"] .drop-zone-blocks {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+.app-shell[data-platform="ios"] :is(.drop-zone-blocks, .recognize-blocks, .activity-actions) {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+
+/* Keep some space for blocks when the number pad is open or the phone rotates. */
+.app-shell[data-platform="ios"] .activity-actions {
+  max-height: 55%;
+}
+
+.math-equation {
+  gap: clamp(4px, 1.5vw, 16px);
+  font-size: clamp(24px, 7vw, 64px);
+  white-space: nowrap;
+}
+
+.math-equation > span {
+  font-size: inherit;
+}
+
+@media (min-width: 768px) and (min-height: 600px) {
+  .app-navigation { grid-template-columns: auto 1fr auto; }
+  .game-modes { grid-column: 2; grid-row: 1; max-width: 480px; width: 100%; justify-self: center; }
+  .app-navigation > :last-child { grid-column: 3; }
+}
+
+@layer base {
+  body {
+    user-select: none;
+    overflow: hidden;
+    overscroll-behavior-y: none;
+    -webkit-tap-highlight-color: transparent;
+    @apply bg-white text-gray-900 antialiased;
+  }
+}
+
+/* 
+ * Utility class for draggable elements.
+ * Fully neutralizes native touch behaviors (like magnifying glass or context menus)
+ * so dnd-kit can process raw pointer events without interruption.
+ */
+@layer utilities {
+  .dnd-strict-lock {
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}

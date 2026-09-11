@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["src/ios", "vite.ios.config.ts", "capacitor.config.ts"],
+  "exclude": []
+}
