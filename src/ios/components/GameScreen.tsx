@@ -1,138 +1,73 @@
 import { useState } from 'react';
-import { 
-  DndContext, 
-  DragEndEvent, 
-  DragOverlay, 
-  DragStartEvent,
-  useSensor,
-  useSensors,
-  MouseSensor,
-  TouchSensor
-} from '@dnd-kit/core';
+import { DndContext, DragOverlay, MouseSensor, TouchSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { useGameStore } from '../../store/useGameStore';
-import { PlaceValue } from '../../domain/types';
+import type { PlaceValue } from '../../domain/types';
+import { PLACE_NAMES } from '../../domain/places';
+import { Block } from '../../art/Block';
+import { Guide, GuideText } from './Guide';
 import { DropZone } from './DropZone';
-import { MontessoriBlock } from './MontessoriBlock';
-import { SkipButton } from './SkipButton';
+import { SourceBlock } from './blocks';
+import { ActionArea } from './ActionArea';
 
+// Tailwind needs the full class names written out.
+const COLUMNS = { 2: 'grid-cols-2', 3: 'grid-cols-3', 4: 'grid-cols-4' } as const;
+
+// Build the number: drag blocks from the shelf into the tray.
 export function GameScreen() {
-  const store = useGameStore();
-  const [activeDragType, setActiveDragType] = useState<PlaceValue | null>(null);
+  const target = useGameStore(state => state.currentTargetNumber);
+  const placedBlocks = useGameStore(state => state.placedBlocks);
+  const interactionState = useGameStore(state => state.interactionState);
+  const feedbackMessage = useGameStore(state => state.feedbackMessage);
+  const lastReward = useGameStore(state => state.lastReward);
+  const addBlock = useGameStore(state => state.addBlock);
+  const removeBlock = useGameStore(state => state.removeBlock);
+  const checkAnswer = useGameStore(state => state.checkAnswer);
+  const [dragging, setDragging] = useState<PlaceValue | null>(null);
 
-  // Zero-latency sensors
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(TouchSensor, { activationConstraint: { distance: 6 } })
+    useSensor(TouchSensor, { activationConstraint: { distance: 6 } }),
   );
 
-  const unitsBlocks = store.placedBlocks.filter(b => b.type === 'unit');
-  const tensBlocks = store.placedBlocks.filter(b => b.type === 'ten');
-  const hundredsBlocks = store.placedBlocks.filter(b => b.type === 'hundred');
-  const thousandsBlocks = store.placedBlocks.filter(b => b.type === 'thousand');
+  // Right to left, like the digits: units first, then tens, hundreds, thousands.
+  const places: PlaceValue[] = ['unit', 'ten'];
+  if (target >= 100) places.push('hundred');
+  if (target >= 1000) places.push('thousand');
+  const columns = COLUMNS[places.length as 2 | 3 | 4];
 
-  const showHundreds = store.currentTargetNumber >= 100;
-  const showThousands = store.currentTargetNumber >= 1000;
-
-  const handleDragStart = (event: DragStartEvent) => {
-    const { active } = event;
-    setActiveDragType(active.data.current?.type);
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    setActiveDragType(null);
-
-    if (!over) return;
-
-    const droppedType = active.data.current?.type as PlaceValue;
-    const targetAccepts = over.data.current?.accepts as PlaceValue;
-
-    if (droppedType === targetAccepts) {
-      store.addBlock(droppedType);
-    }
+  const handleDragEnd = ({ active, over }: DragEndEvent) => {
+    setDragging(null);
+    const type = active.data.current?.type as PlaceValue | undefined;
+    if (type && over?.data.current?.accepts === type) addBlock(type);
   };
 
   return (
-    <div className="build-screen activity-screen h-full w-full pt-2 sm:pt-4 font-sans select-none bg-white" dir="rtl">
-      
-      <div className="activity-content flex flex-col max-w-6xl mx-auto w-full">
-        
-        {/* Header - Fixed */}
-        <div className="text-center pb-2 sm:pb-6 shrink-0 px-2">
-          <h1 className="text-2xl sm:text-5xl font-extrabold text-gray-800 mb-2">
-            בנו את המספר: <span className="text-purple-600">{store.currentTargetNumber}</span>
-          </h1>
-          
-          {store.interactionState === 'error' && store.feedbackMessage && (
-            <div className="mt-1 p-2 sm:p-4 max-w-lg mx-auto bg-orange-100 text-orange-800 rounded-xl border border-orange-200 shadow-sm animate-bounce">
-              <span className="font-bold text-sm sm:text-xl">{store.feedbackMessage}</span>
-            </div>
-          )}
+    <DndContext sensors={sensors} onDragEnd={handleDragEnd} onDragCancel={() => setDragging(null)}
+      onDragStart={({ active }) => setDragging((active.data.current?.type as PlaceValue | undefined) ?? null)}>
 
-          {store.interactionState === 'success' && store.feedbackMessage && (
-            <div className="mt-1 p-2 sm:p-4 max-w-lg mx-auto bg-green-100 text-green-800 rounded-xl shadow-sm text-sm sm:text-2xl font-bold">
-              {store.feedbackMessage}
-            </div>
-          )}
-        </div>
+      <Guide mood={interactionState === 'success' ? 'happy' : interactionState === 'error' ? 'encourage' : 'idle'}>
+        <GuideText task="בנו את המספר" state={interactionState} feedback={feedbackMessage} celebration="כל הכבוד!" reward={lastReward} />
+        <p className="relative text-[52px] leading-[60px] font-extrabold text-accent">{target}</p>
+      </Guide>
 
-        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} onDragCancel={() => setActiveDragType(null)}>
-          
-          {/* DropZones Area - Flexible, takes remaining space but can shrink */}
-          <div className="build-board flex flex-row gap-1 sm:gap-4 flex-1 px-1 sm:px-4 w-full flex-nowrap items-stretch pb-2">
-            <DropZone id="zone-unit" type="unit" title="אחדות" blocks={unitsBlocks} onRemoveBlock={store.removeBlock} />
-            <DropZone id="zone-ten" type="ten" title="עשרות" blocks={tensBlocks} onRemoveBlock={store.removeBlock} />
-            {showHundreds && <DropZone id="zone-hundred" type="hundred" title="מאות" blocks={hundredsBlocks} onRemoveBlock={store.removeBlock} />}
-            {showThousands && <DropZone id="zone-thousand" type="thousand" title="אלפים" blocks={thousandsBlocks} onRemoveBlock={store.removeBlock} />}
+      <section aria-label="מגש הבנייה" className={`mt-3 flex-1 min-h-0 grid grid-rows-1 ${columns} gap-2 p-2 rounded-3xl bg-card shadow-tray`}>
+        {places.map(type => (
+          <DropZone key={type} type={type} blocks={placedBlocks.filter(block => block.type === type)} onRemove={removeBlock} />
+        ))}
+      </section>
+
+      <section aria-label="מדף הקוביות" className={`mt-3 shrink-0 grid ${columns} gap-2 items-end px-2 pt-3 rounded-t-[20px] rounded-b-xl bg-card shadow-shelf`}>
+        {places.map(type => (
+          <div key={type} className="flex flex-col items-center gap-1.5 pb-3.5">
+            <SourceBlock type={type} />
+            <span className="text-xs font-medium text-muted">{PLACE_NAMES[type]}</span>
           </div>
+        ))}
+      </section>
 
-          {/* Toolbox - Fixed at bottom of DndContext */}
-          <div className="w-full bg-gray-100 p-3 sm:p-6 rounded-t-3xl shadow-[0_-4px_10px_rgba(0,0,0,0.05)] border-t-4 border-gray-200 shrink-0 flex flex-row justify-around items-end relative z-10 flex-nowrap">
-            {showThousands && (
-              <div className="flex flex-col items-center gap-1 sm:gap-2">
-                <MontessoriBlock id="src-thousand" type="thousand" isDraggable />
-                <span className="text-[10px] sm:text-lg font-bold text-gray-500">אלפים</span>
-              </div>
-            )}
-            {showHundreds && (
-              <div className="flex flex-col items-center gap-1 sm:gap-2">
-                <MontessoriBlock id="src-hundred" type="hundred" isDraggable />
-                <span className="text-[10px] sm:text-lg font-bold text-gray-500">מאות</span>
-              </div>
-            )}
-            <div className="flex flex-col items-center gap-1 sm:gap-2">
-              <MontessoriBlock id="src-ten" type="ten" isDraggable />
-              <span className="text-[10px] sm:text-lg font-bold text-gray-500">עשרות</span>
-            </div>
-            <div className="flex flex-col items-center gap-1 sm:gap-2">
-              <MontessoriBlock id="src-unit" type="unit" isDraggable />
-              <span className="text-[10px] sm:text-lg font-bold text-gray-500">אחדות</span>
-            </div>
-          </div>
+      <ActionArea onCheck={checkAnswer} canCheck={placedBlocks.length > 0} skipLabel="דלגו על השלב" nextLabel="השלב הבא מגיע…" />
 
-          <DragOverlay dropAnimation={null}>
-            {activeDragType ? <MontessoriBlock id="overlay" type={activeDragType} /> : null}
-          </DragOverlay>
-        </DndContext>
-
-        {/* Action Buttons Container - Strictly Fixed at the very bottom, properly stacked using flex-col */}
-        <div className="activity-actions bg-gray-100 pb-6 pt-2 sm:pt-4 shrink-0 w-full relative z-20 px-4">
-          <div className="w-full max-w-sm mx-auto flex flex-col gap-3">
-            
-            <button 
-              onClick={store.checkAnswer}
-              disabled={store.placedBlocks.length === 0 || store.interactionState === 'success'}
-              className="w-full py-3 sm:py-4 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white font-bold text-xl sm:text-3xl rounded-2xl shadow-lg transition-transform active:scale-95"
-            >
-              בדוק אותי!
-            </button>
-            
-            <SkipButton label="דלגו על השלב" />
-
-          </div>
-        </div>
-      </div>
-    </div>
+      <DragOverlay dropAnimation={null}>{dragging && <Block type={dragging} />}</DragOverlay>
+    </DndContext>
   );
 }
-

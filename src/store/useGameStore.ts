@@ -338,7 +338,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         finalReward = Math.round(finalReward * 1.5);
       }
 
-      set({ interactionState: 'success', coinsCollected: state.coinsCollected + finalReward, feedbackMessage: `תשובה נכונה! הרווחתם ${finalReward} כוכבים! ⭐` });
+      set({ interactionState: 'success', coinsCollected: state.coinsCollected + finalReward, lastReward: finalReward, feedbackMessage: `תשובה נכונה! הרווחתם ${finalReward} כוכבים! ⭐` });
       repo.saveUserProgress(USER_ID, get());
       nextRoundTimer = setTimeout(() => get().resetBoard(), 3000);
     } else {
@@ -355,7 +355,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       if (state.currentTargetNumber >= 1000) reward = 30;
       else if (state.currentTargetNumber >= 100) reward = 20;
 
-      set({ interactionState: 'success', coinsCollected: state.coinsCollected + reward, feedbackMessage: `כל הכבוד! הרווחתם ${reward} כוכבים! ⭐` });
+      set({ interactionState: 'success', coinsCollected: state.coinsCollected + reward, lastReward: reward, feedbackMessage: `כל הכבוד! הרווחתם ${reward} כוכבים! ⭐` });
       repo.saveUserProgress(USER_ID, get());
       nextRoundTimer = setTimeout(() => get().resetBoard(), 3000);
     } else {
@@ -371,7 +371,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       if (state.currentTargetNumber >= 1000) reward = 30;
       else if (state.currentTargetNumber >= 100) reward = 20;
 
-      set({ interactionState: 'success', coinsCollected: state.coinsCollected + reward, feedbackMessage: `נכון מאוד! הרווחתם ${reward} כוכבים! ⭐` });
+      set({ interactionState: 'success', coinsCollected: state.coinsCollected + reward, lastReward: reward, feedbackMessage: `נכון מאוד! הרווחתם ${reward} כוכבים! ⭐` });
       repo.saveUserProgress(USER_ID, get());
       nextRoundTimer = setTimeout(() => get().resetBoard(), 3000);
     } else {

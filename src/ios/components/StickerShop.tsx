@@ -1,45 +1,60 @@
 import { useGameStore } from '../../store/useGameStore';
 import { STICKER_CATALOG } from '../../domain/stickers';
+import { CheckIcon, CloseIcon, StarIcon } from '../../art/icons';
+import { palette } from '../../art/palette';
 import { StarsCounter } from './StarsCounter';
+import { IconButton } from './IconButton';
 
-interface Props {
-  onClose: () => void;
-}
-
-export function StickerShop({ onClose }: Props) {
-  const unlockedStickers = useGameStore((state) => state.unlockedStickers);
-  const coinsCollected = useGameStore((state) => state.coinsCollected);
-  const buySticker = useGameStore((state) => state.buySticker);
+export function StickerShop({ onClose }: { onClose: () => void }) {
+  const unlockedStickers = useGameStore(state => state.unlockedStickers);
+  const coinsCollected = useGameStore(state => state.coinsCollected);
+  const buySticker = useGameStore(state => state.buySticker);
 
   return (
-    <div className="safe-screen fixed inset-0 bg-pink-50 z-[100] flex flex-col font-sans select-none" dir="rtl">
-      
-      <div className="bg-white border-b-2 border-pink-200 p-2 flex justify-between items-center shrink-0 shadow-sm relative">
-        <div className="flex items-center"><StarsCounter /></div>
-        <h2 className="px-2 text-center text-lg sm:text-2xl font-extrabold text-pink-600">ספר המדבקות</h2>
-        <div className="flex items-center"><button aria-label="סגירת ספר המדבקות" onClick={onClose} className="w-11 h-11 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors text-lg sm:text-xl font-bold text-gray-600">✕</button></div>
-      </div>
+    <div dir="rtl" className="safe-screen fixed inset-0 z-[100] bg-paper flex flex-col">
+      <div className="flex-1 min-h-0 w-full max-w-xl mx-auto px-4 py-2 flex flex-col">
+        <header className="h-11 shrink-0 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+          <div className="flex"><StarsCounter /></div>
+          <h1 className="text-xl font-bold">ספר המדבקות</h1>
+          <div className="flex justify-end">
+            <IconButton label="סגירת ספר המדבקות" onClick={onClose}><CloseIcon color={palette.icon} /></IconButton>
+          </div>
+        </header>
 
-      <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6">
-        <div className="max-w-4xl mx-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 pb-20">
-          {STICKER_CATALOG.map((sticker) => {
-            const isUnlocked = unlockedStickers.includes(sticker.id);
-            const canAfford = coinsCollected >= sticker.cost;
-
-            return (
-              <div key={sticker.id} className={`relative flex flex-col items-center p-4 rounded-3xl border-4 transition-all ${isUnlocked ? 'bg-white border-green-400 shadow-md scale-100' : 'bg-white border-pink-100 shadow-sm'}`}>
-                <div className="text-5xl sm:text-6xl mb-2 drop-shadow-sm">{isUnlocked ? sticker.emoji : <span className="opacity-40 grayscale">{sticker.emoji}</span>}</div>
-                <span className="font-bold text-gray-700 text-sm sm:text-base text-center mb-2">{sticker.name}</span>
-                {isUnlocked ? (
-                  <div className="mt-auto px-4 py-1 bg-green-100 text-green-700 font-bold rounded-full text-sm">שלי! ✅</div>
-                ) : (
-                  <button onClick={() => buySticker(sticker.id, sticker.cost)} disabled={!canAfford} className={`mt-auto px-4 py-2 rounded-full font-bold w-full flex items-center justify-center gap-1 transition-all ${canAfford ? 'bg-pink-500 hover:bg-pink-600 text-white active:scale-95 shadow-md cursor-pointer' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
-                    <span>{sticker.cost}</span><span className="text-xs">⭐</span>
-                  </button>
-                )}
-              </div>
-            );
-          })}
+        <div className="mt-4 flex-1 min-h-0 overflow-y-auto overscroll-contain -mx-4 px-4 pb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {STICKER_CATALOG.map(sticker => {
+              const owned = unlockedStickers.includes(sticker.id);
+              const missing = sticker.cost - coinsCollected;
+              return (
+                <div key={sticker.id}
+                  className={`flex flex-col items-center gap-2 p-3.5 rounded-[20px] bg-card shadow-card ${owned ? 'ring-2 ring-success-line' : ''}`}>
+                  <div className="w-[72px] h-[72px] rounded-full bg-halo flex items-center justify-center text-[44px]">
+                    <span className={owned ? '' : 'opacity-40 grayscale'}>{sticker.emoji}</span>
+                  </div>
+                  <p className="min-h-[2.5em] flex items-center text-center text-[15px] font-bold leading-tight">{sticker.name}</p>
+                  {owned ? (
+                    <span className="h-11 w-full rounded-[14px] bg-success-bg text-success-text font-bold flex items-center justify-center gap-1.5">
+                      <CheckIcon size={16} color={palette.success.text} />
+                      שלי!
+                    </span>
+                  ) : missing <= 0 ? (
+                    <button type="button" onClick={() => buySticker(sticker.id, sticker.cost)} aria-label={`קנייה ב-${sticker.cost} כוכבים`}
+                      className="h-11 w-full rounded-[14px] bg-accent text-white font-bold flex items-center justify-center gap-1.5 shadow-press transition-transform active:translate-y-0.5">
+                      <span>{sticker.cost}</span>
+                      <StarIcon size={16} color="#FFD54A" />
+                    </button>
+                  ) : (
+                    <button type="button" disabled aria-label={`עולה ${sticker.cost} כוכבים, חסרים עוד ${missing}`}
+                      className="h-11 w-full rounded-[14px] bg-track text-muted font-bold flex items-center justify-center gap-1.5">
+                      <span>עוד {missing}</span>
+                      <StarIcon size={16} color="#D9A400" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>

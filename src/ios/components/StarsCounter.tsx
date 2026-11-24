@@ -1,27 +1,14 @@
 import { useGameStore } from '../../store/useGameStore';
+import { StarIcon } from '../../art/icons';
 
-interface Props {
-  onClick?: () => void;
+const LOOK = 'h-11 px-4 rounded-full bg-star-bg text-star-text text-[17px] font-bold flex items-center gap-1.5';
+
+// The star count. With onClick it opens the sticker book.
+export function StarsCounter({ onClick }: { onClick?: () => void }) {
+  const coinsCollected = useGameStore(state => state.coinsCollected);
+  const content = <><span>{coinsCollected}</span><StarIcon size={18} /></>;
+
+  return onClick
+    ? <button type="button" onClick={onClick} aria-label={`${coinsCollected} כוכבים, פתיחת ספר המדבקות`} className={LOOK}>{content}</button>
+    : <span aria-label={`${coinsCollected} כוכבים`} className={LOOK}>{content}</span>;
 }
-
-export function StarsCounter({ onClick }: Props) {
-  const coinsCollected = useGameStore((state) => state.coinsCollected);
-
-  return (
-    // Locked dir="ltr" ensures the star is ALWAYS on the right of the number, immune to parent RTL rules.
-    <button
-      type="button"
-      disabled={!onClick}
-      aria-label={`${coinsCollected} כוכבים${onClick ? ', פתיחת ספר המדבקות' : ''}`}
-      onClick={onClick}
-      dir="ltr"
-      className={`flex items-center gap-1 bg-yellow-100 px-2 sm:px-3 py-1 rounded-full border border-yellow-200 ${
-        onClick ? 'cursor-pointer hover:bg-yellow-200 transition-colors' : ''
-      }`}
-    >
-      <span className="font-bold text-yellow-700 text-xs sm:text-base">{coinsCollected}</span>
-      <span className="text-yellow-600 text-xs sm:text-base">⭐</span>
-    </button>
-  );
-}
-

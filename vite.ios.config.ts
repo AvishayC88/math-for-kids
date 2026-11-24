@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from 'tailwindcss';
 import autoprefixer from 'autoprefixer';
-import { palette, fontFamily } from './src/art/palette';
+import { palette, fontFamily, shadows } from './src/art/palette.ts';
 
 export default defineConfig({
   root: 'src/ios',
@@ -16,7 +16,7 @@ export default defineConfig({
       plugins: [
         tailwindcss({
           content: ['./src/ios/**/*.{html,js,ts,jsx,tsx}'],
-          theme: { extend: { colors: palette, fontFamily: { rubik: fontFamily } } },
+          theme: { extend: { colors: palette, fontFamily: { rubik: fontFamily }, boxShadow: shadows } },
         }),
         autoprefixer(),
       ],

@@ -43,7 +43,8 @@ export interface GameState {
   coinsCollected: number; 
   unlockedStickers: string[];
   interactionState: 'playing' | 'success' | 'error';
-  feedbackMessage: string | null; 
+  feedbackMessage: string | null;
+  lastReward?: number; // stars earned by the last correct answer, shown while it is celebrated 
 }
 
 export interface IProgressRepository {

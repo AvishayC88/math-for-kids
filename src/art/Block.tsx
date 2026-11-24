@@ -8,6 +8,26 @@ const TEN = { width: 16, height: 80 };
 const HUNDRED = 72;
 const THOUSAND = 72;
 
+// Width and height of a block at a scale.
+export function blockSize(type: PlaceValue, scale = 1) {
+  if (type === 'ten') return { width: TEN.width * scale, height: TEN.height * scale };
+  const side = (type === 'unit' ? UNIT : type === 'hundred' ? HUNDRED : THOUSAND) * scale;
+  return { width: side, height: side };
+}
+
+// The largest scale, from full size down to `min`, at which `count` blocks wrapped in rows fit
+// a width × height box. Below `min` the blocks would be too small to count, so the box scrolls instead.
+export function fitScale(type: PlaceValue, count: number, width: number, height: number, gap = 6, min = 0.4) {
+  if (!count || !width || !height) return 1;
+  for (let scale = 1; scale > min; scale -= 0.05) {
+    const block = blockSize(type, scale);
+    const perRow = Math.max(1, Math.floor((width + gap) / (block.width + gap)));
+    const rows = Math.ceil(count / perRow);
+    if (block.width <= width && rows * block.height + (rows - 1) * gap <= height) return scale;
+  }
+  return min;
+}
+
 interface Props {
   type: PlaceValue;
   scale?: number;
