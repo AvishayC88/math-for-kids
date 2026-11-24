@@ -61,7 +61,7 @@ build products are ignored.
 
 For a physical device, select your Apple development team under Signing &
 Capabilities and connect the device. The bundle identifier
-`com.example.mathforkids` is a development placeholder: choose a final unique
+`com.avishaycohen.mathforkids` is a development identifier: choose a final unique
 identifier in both `capacitor.config.ts` and the Xcode target before distribution.
 
 ## Next milestones

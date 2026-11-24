@@ -32,7 +32,7 @@ export interface GameState {
   isLifelineUsed: boolean;
   placedBlocks: MontessoriBlock[];
 
-  // ARCHITECT FIX: Background Persistence states for independent tabs
+  // Background Persistence states for independent tabs
   savedBuildTarget?: number;
   savedBuildBlocks?: MontessoriBlock[];
   savedRecognizeTarget?: number;
@@ -42,8 +42,7 @@ export interface GameState {
 
   coinsCollected: number; 
   unlockedStickers: string[];
-  consecutiveSuccesses: number;
-  interactionState: 'playing' | 'validating' | 'success' | 'error';
+  interactionState: 'playing' | 'success' | 'error';
   feedbackMessage: string | null; 
 }
 

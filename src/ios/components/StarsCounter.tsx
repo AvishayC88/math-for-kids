@@ -8,7 +8,7 @@ export function StarsCounter({ onClick }: Props) {
   const coinsCollected = useGameStore((state) => state.coinsCollected);
 
   return (
-    // ARCHITECT FIX: Locked dir="ltr" ensures the star is ALWAYS on the right of the number, immune to parent RTL rules.
+    // Locked dir="ltr" ensures the star is ALWAYS on the right of the number, immune to parent RTL rules.
     <button
       type="button"
       disabled={!onClick}

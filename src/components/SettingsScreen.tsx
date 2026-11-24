@@ -26,7 +26,7 @@ export function SettingsScreen({ onClose }: Props) {
   const isMathMode = gameMode === 'math';
   const optionType = isMathMode ? 'math' : 'build';
 
-  // ARCHITECT FIX: Explicit full Tailwind class names to prevent PurgeCSS from deleting them.
+  // Explicit full Tailwind class names to prevent PurgeCSS from deleting them.
   const buildOptions: { id: DifficultyLevel, label: string, selectedClass: string, hoverClass: string }[] = [
     { id: 'tens', label: 'עשרות', selectedClass: 'bg-blue-500 border-blue-600 text-white scale-105 shadow-md', hoverClass: 'hover:border-blue-300' },
     { id: 'hundreds', label: 'מאות', selectedClass: 'bg-red-500 border-red-600 text-white scale-105 shadow-md', hoverClass: 'hover:border-red-300' },
@@ -67,9 +67,9 @@ export function SettingsScreen({ onClose }: Props) {
         
         {/* Contextual Developer Menu */}
         {secretTaps >= 5 && (
-          <div className="w-full max-w-sm mb-6 p-4 bg-red-50 border-2 border-red-200 rounded-2xl flex flex-col items-center gap-2 animate-fade-in">
+          <div className="w-full max-w-sm mb-6 p-4 bg-red-50 border-2 border-red-200 rounded-2xl flex flex-col items-center gap-2">
             <span className="text-red-700 font-bold text-lg">בקרת הורים סודית 🕵️‍♂️</span>
-            <span className="text-xs text-red-500 mb-2 font-bold">לחצי כדי לנעול/לפתוח (חובה להשאיר רמה אחת)</span>
+            <span className="text-xs text-red-500 mb-2 font-bold">לחצו כדי לנעול/לפתוח (חובה להשאיר רמה אחת)</span>
             
             <div className="flex flex-wrap gap-2 justify-center" dir="rtl">
                {currentOptions.map(opt => {

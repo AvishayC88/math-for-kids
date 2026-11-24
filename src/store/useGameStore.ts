@@ -23,17 +23,17 @@ function generateBlocksForNumber(num: number, groupId?: number): MontessoriBlock
 }
 
 function generateBlocksForSubtraction(minuend: number, subtrahend: number): MontessoriBlock[] {
-  let reqUnits = subtrahend % 10;
-  let reqTens = Math.floor(subtrahend / 10) % 10;
+  const reqUnits = subtrahend % 10;
+  const reqTens = Math.floor(subtrahend / 10) % 10;
   let availUnits = minuend % 10;
   let availTens = Math.floor(minuend / 10) % 10;
-  let availHundreds = Math.floor(minuend / 100) % 10;
+  let availHundreds = Math.floor(minuend / 100); // 1000 is shown as ten hundreds
 
   if (availUnits < reqUnits) {
     if (availTens > 0) { availTens--; availUnits += 10; }
     else if (availHundreds > 0) { availHundreds--; availTens += 9; availUnits += 10; }
   }
-  if (availTens < Math.floor(subtrahend / 10) % 10) {
+  if (availTens < reqTens) {
     if (availHundreds > 0) { availHundreds--; availTens += 10; }
   }
 
@@ -44,7 +44,12 @@ function generateBlocksForSubtraction(minuend: number, subtrahend: number): Mont
   return blocks;
 }
 
+export const SKIP_COST = 10;
 const MATH_LIMITS: Record<MathDifficultyLevel, number> = { upTo10: 10, upTo20: 20, upTo100: 100, upTo1000: 1000 };
+
+// Pause on the success message before the next round. resetBoard and setGameMode cancel it,
+// so it can never fire on a round the player has already left.
+let nextRoundTimer: ReturnType<typeof setTimeout> | undefined;
 
 interface GameStore extends GameState {
   initGame: () => Promise<void>;
@@ -69,7 +74,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   gameMode: 'build', difficulty: 'tens', mathDifficulty: 'upTo10', lockedLevels: {}, allowedOperators: ['+', '-'],
   currentTargetNumber: 0, currentMathProblem: null, isLifelineUsed: false,
   placedBlocks: [], coinsCollected: 0, unlockedStickers: [],
-  consecutiveSuccesses: 0, interactionState: 'playing', feedbackMessage: null,
+  interactionState: 'playing', feedbackMessage: null,
 
   initGame: async () => {
     const savedProgress = await repo.getUserProgress(USER_ID);
@@ -77,7 +82,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
       set({ ...savedProgress, unlockedStickers: savedProgress.unlockedStickers || [], lockedLevels: savedProgress.lockedLevels || {}, allowedOperators: savedProgress.allowedOperators || ['+', '-'], interactionState: 'playing', feedbackMessage: null });
 
       const state = get();
-      if (state.gameMode === 'recognize') {
+      if (savedProgress.interactionState === 'success') {
+        get().resetBoard(); // the saved round was already solved and rewarded
+      } else if (state.gameMode === 'recognize') {
         if (!state.currentTargetNumber && !state.savedRecognizeTarget) get().resetBoard();
         else set({ currentTargetNumber: state.currentTargetNumber || state.savedRecognizeTarget, placedBlocks: generateBlocksForNumber(state.currentTargetNumber || state.savedRecognizeTarget!) });
       } else if (state.gameMode === 'math') {
@@ -98,16 +105,19 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const state = get();
     if (state.gameMode === mode) return;
 
+    clearTimeout(nextRoundTimer);
+    // A solved round is not kept: coming back to this mode starts a new one.
+    const solved = state.interactionState === 'success';
     const updates: Partial<GameStore> = {};
     if (state.gameMode === 'build') {
-      updates.savedBuildTarget = state.currentTargetNumber;
-      updates.savedBuildBlocks = state.placedBlocks;
+      updates.savedBuildTarget = solved ? undefined : state.currentTargetNumber;
+      updates.savedBuildBlocks = solved ? [] : state.placedBlocks;
     } else if (state.gameMode === 'recognize') {
-      updates.savedRecognizeTarget = state.currentTargetNumber;
+      updates.savedRecognizeTarget = solved ? undefined : state.currentTargetNumber;
     } else if (state.gameMode === 'math') {
-      updates.savedMathProblem = state.currentMathProblem;
-      updates.savedMathBlocks = state.placedBlocks;
-      updates.savedMathLifeline = state.isLifelineUsed;
+      updates.savedMathProblem = solved ? null : state.currentMathProblem;
+      updates.savedMathBlocks = solved ? [] : state.placedBlocks;
+      updates.savedMathLifeline = solved ? false : state.isLifelineUsed;
     }
 
     updates.gameMode = mode;
@@ -130,6 +140,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     repo.saveUserProgress(USER_ID, get());
   },
 
+  // Deliberately no resetBoard here: switching the level and switching it back
+  // must not hand out a free new problem.
   setDifficulty: (level: DifficultyLevel) => { set({ difficulty: level }); repo.saveUserProgress(USER_ID, get()); },
   setMathDifficulty: (level: MathDifficultyLevel) => { set({ mathDifficulty: level }); repo.saveUserProgress(USER_ID, get()); },
 
@@ -165,10 +177,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
       return newState;
     });
     // Only reset if the active level was locked away (forcing a switch to a different level)
+    // or the problem on screen uses an operator that is now locked.
     const next = get();
     const activeLevelChanged = next.difficulty !== prevDifficulty || next.mathDifficulty !== prevMathDifficulty;
+    const currentOp = next.currentMathProblem?.operator;
+    const operatorLocked = next.gameMode === 'math' && !!currentOp && !!next.lockedLevels[currentOp];
     repo.saveUserProgress(USER_ID, next);
-    if (activeLevelChanged) get().resetBoard();
+    if (activeLevelChanged || operatorLocked) get().resetBoard();
   },
 
   toggleOperator: (operator) => {
@@ -192,11 +207,15 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   addBlock: (type: PlaceValue) => {
     const val = type === 'thousand' ? 1000 : type === 'hundred' ? 100 : type === 'ten' ? 10 : 1;
+    if (get().interactionState === 'success') return;
     set((state) => ({ placedBlocks: [...state.placedBlocks, { id: Math.random().toString(), type, value: val }], interactionState: 'playing', feedbackMessage: null }));
+    repo.saveUserProgress(USER_ID, get());
   },
 
   removeBlock: (id: string) => {
+    if (get().interactionState === 'success') return;
     set((state) => ({ placedBlocks: state.placedBlocks.filter(b => b.id !== id), interactionState: 'playing', feedbackMessage: null }));
+    repo.saveUserProgress(USER_ID, get());
   },
 
   toggleBlockGhostState: (id: string) => {
@@ -232,13 +251,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   skipProblem: () => {
     const state = get();
-    if (state.coinsCollected >= 10 && state.interactionState !== 'success') {
-      set({ coinsCollected: state.coinsCollected - 10, interactionState: 'playing', feedbackMessage: null });
+    if (state.coinsCollected >= SKIP_COST && state.interactionState !== 'success') {
+      set({ coinsCollected: state.coinsCollected - SKIP_COST, interactionState: 'playing', feedbackMessage: null });
       get().resetBoard();
     }
   },
 
   resetBoard: () => {
+    clearTimeout(nextRoundTimer);
     const state = get();
     if (state.gameMode === 'math') {
       const limit = MATH_LIMITS[state.mathDifficulty];
@@ -255,12 +275,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
         const productLimit = Math.min(limit, 100);
         n1 = Math.floor(Math.random() * 9) + 2;
         const maxN2 = Math.floor(productLimit / n1);
-        n2 = Math.floor(Math.random() * (maxN2 - 1)) + 1;
+        n2 = Math.floor(Math.random() * maxN2) + 1;
       } else if (operator === '/') {
         const productLimit = Math.min(limit, 100);
         n2 = Math.floor(Math.random() * 9) + 2;
         const maxAnswer = Math.floor(productLimit / n2);
-        const answer = Math.floor(Math.random() * (maxAnswer - 1)) + 1;
+        const answer = Math.floor(Math.random() * maxAnswer) + 1;
         n1 = n2 * answer;
       } else {
         n1 = 2; n2 = 1;
@@ -320,13 +340,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
       set({ interactionState: 'success', coinsCollected: state.coinsCollected + finalReward, feedbackMessage: `תשובה נכונה! הרווחתם ${finalReward} כוכבים! ⭐` });
       repo.saveUserProgress(USER_ID, get());
-      setTimeout(() => get().resetBoard(), 3000);
+      nextRoundTimer = setTimeout(() => get().resetBoard(), 3000);
     } else {
       set({ interactionState: 'error', feedbackMessage: 'כמעט... נסו לחשב שוב!' });
     }
   },
 
-  // ARCHITECT FIX: Dynamic rewards based on actual number for Build mode
+  // Dynamic rewards based on actual number for Build mode
   checkAnswer: () => {
     const state = get();
     const sum = state.placedBlocks.reduce((acc, b) => acc + b.value, 0);
@@ -337,13 +357,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
       set({ interactionState: 'success', coinsCollected: state.coinsCollected + reward, feedbackMessage: `כל הכבוד! הרווחתם ${reward} כוכבים! ⭐` });
       repo.saveUserProgress(USER_ID, get());
-      setTimeout(() => get().resetBoard(), 3000);
+      nextRoundTimer = setTimeout(() => get().resetBoard(), 3000);
     } else {
       set({ interactionState: 'error', feedbackMessage: 'המספר לא מתאים, בואו ננסה שוב.' });
     }
   },
 
-  // ARCHITECT FIX: Dynamic rewards based on actual number for Recognize mode
+  // Dynamic rewards based on actual number for Recognize mode
   checkRecognizeAnswer: (input: number) => {
     const state = get();
     if (input === state.currentTargetNumber) {
@@ -353,7 +373,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
       set({ interactionState: 'success', coinsCollected: state.coinsCollected + reward, feedbackMessage: `נכון מאוד! הרווחתם ${reward} כוכבים! ⭐` });
       repo.saveUserProgress(USER_ID, get());
-      setTimeout(() => get().resetBoard(), 3000);
+      nextRoundTimer = setTimeout(() => get().resetBoard(), 3000);
     } else {
       set({ interactionState: 'error', feedbackMessage: 'לא בדיוק, בואו נספור שוב.' });
     }

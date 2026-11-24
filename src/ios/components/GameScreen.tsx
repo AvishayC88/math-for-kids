@@ -13,6 +13,7 @@ import { useGameStore } from '../../store/useGameStore';
 import { PlaceValue } from '../../domain/types';
 import { DropZone } from './DropZone';
 import { MontessoriBlock } from './MontessoriBlock';
+import { SkipButton } from './SkipButton';
 
 export function GameScreen() {
   const store = useGameStore();
@@ -52,7 +53,6 @@ export function GameScreen() {
   };
 
   return (
-    // ARCHITECT NOTE: Kept the robust h-full w-full layout.
     <div className="build-screen activity-screen h-full w-full pt-2 sm:pt-4 font-sans select-none bg-white" dir="rtl">
       
       <div className="activity-content flex flex-col max-w-6xl mx-auto w-full">
@@ -69,7 +69,6 @@ export function GameScreen() {
             </div>
           )}
 
-          {/* ARCHITECT NOTE: Replaced hardcoded "10 coins" string with dynamic store.feedbackMessage */}
           {store.interactionState === 'success' && store.feedbackMessage && (
             <div className="mt-1 p-2 sm:p-4 max-w-lg mx-auto bg-green-100 text-green-800 rounded-xl shadow-sm text-sm sm:text-2xl font-bold">
               {store.feedbackMessage}
@@ -112,11 +111,11 @@ export function GameScreen() {
           </div>
 
           <DragOverlay dropAnimation={null}>
-            {activeDragType ? <MontessoriBlock id="overlay" type={activeDragType} isOverlay /> : null}
+            {activeDragType ? <MontessoriBlock id="overlay" type={activeDragType} /> : null}
           </DragOverlay>
         </DndContext>
 
-        {/* ARCHITECT FIX: Action Buttons Container - Strictly Fixed at the very bottom, properly stacked using flex-col */}
+        {/* Action Buttons Container - Strictly Fixed at the very bottom, properly stacked using flex-col */}
         <div className="activity-actions bg-gray-100 pb-6 pt-2 sm:pt-4 shrink-0 w-full relative z-20 px-4">
           <div className="w-full max-w-sm mx-auto flex flex-col gap-3">
             
@@ -128,26 +127,7 @@ export function GameScreen() {
               בדוק אותי!
             </button>
             
-            {/* ARCHITECT ADDITION: Strict Economy Skip Button */}
-            <div className="flex flex-col gap-1">
-              <button
-                onClick={store.skipProblem}
-                disabled={store.coinsCollected < 10 || store.interactionState === 'success'}
-                className={`w-full py-3 rounded-2xl font-bold text-lg transition-all border-2 ${
-                  store.coinsCollected >= 10 && store.interactionState !== 'success'
-                    ? 'bg-orange-50 text-orange-700 border-orange-300 hover:bg-orange-100 active:scale-95 cursor-pointer'
-                    : 'bg-gray-50 text-gray-400 border-gray-200 opacity-80 cursor-not-allowed'
-                }`}
-              >
-                דלגו על השלב (עולה 10 ⭐)
-              </button>
-              
-              {store.coinsCollected < 10 && store.interactionState !== 'success' && (
-                <span className="text-xs font-bold text-red-500 text-center px-2 animate-pulse mt-1">
-                  אין מספיק כוכבים! שחקו במסכים אחרים כדי להרוויח עוד.
-                </span>
-              )}
-            </div>
+            <SkipButton label="דלגו על השלב" />
 
           </div>
         </div>

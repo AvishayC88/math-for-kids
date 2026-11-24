@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useGameStore } from '../../store/useGameStore';
 import { MontessoriBlock } from './MontessoriBlock';
+import { SkipButton } from './SkipButton';
 import { NumberAnswer } from './NumberAnswer';
 
 export function MathScreen() {
@@ -70,7 +71,7 @@ export function MathScreen() {
               {operator === '-' && (
                 <div className="w-full flex flex-col items-center gap-4 bg-red-50/30 p-6 rounded-3xl border-2 border-red-100">
                   <div className="bg-white px-6 py-2 rounded-full border-2 border-red-200 text-red-600 font-bold shadow-sm animate-pulse">
-                    החסירי {num2} קוביות (לחצי עליהן) 👇
+                    החסירו {num2} קוביות (לחצו עליהן) 👇
                   </div>
                   <div dir="ltr" className="flex flex-row flex-wrap gap-2 justify-center">
                     {store.placedBlocks.map((b, idx) => (
@@ -123,26 +124,7 @@ export function MathScreen() {
               בדוק אותי!
             </button>
 
-            {/* Strict Economy Skip Button */}
-            <div className="flex flex-col gap-1 mt-2">
-              <button
-                onClick={store.skipProblem}
-                disabled={store.coinsCollected < 10 || store.interactionState === 'success'}
-                className={`w-full py-3 rounded-2xl font-bold text-lg transition-all border-2 ${
-                  store.coinsCollected >= 10 && store.interactionState !== 'success'
-                    ? 'bg-orange-50 text-orange-700 border-orange-300 hover:bg-orange-100 active:scale-95 cursor-pointer'
-                    : 'bg-gray-50 text-gray-400 border-gray-200 opacity-80 cursor-not-allowed'
-                }`}
-              >
-                דלג על התרגיל (עולה 10 ⭐)
-              </button>
-              
-              {store.coinsCollected < 10 && store.interactionState !== 'success' && (
-                <span className="text-xs font-bold text-red-500 text-center px-2 animate-pulse mt-1">
-                  אין מספיק כוכבים! שחקי במסכים אחרים כדי להרוויח עוד.
-                </span>
-              )}
-            </div>
+            <SkipButton label="דלגו על התרגיל" className="mt-2" />
           </div>
         </div>
 

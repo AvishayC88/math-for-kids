@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { MontessoriBlock } from './MontessoriBlock';
+import { SkipButton } from './SkipButton';
 
 export function RecognizeScreen() {
   const store = useGameStore();
@@ -24,8 +25,6 @@ export function RecognizeScreen() {
   const thousandsBlocks = store.placedBlocks.filter(b => b.type === 'thousand');
 
   return (
-    // ARCHITECT NOTE: Replaced fixed inset-0 with h-full w-full.
-    // This allows the screen to sit properly underneath the App.tsx navbar.
     <div className="h-full w-full pt-4 flex flex-col font-sans select-none bg-white overflow-hidden" dir="rtl">
       <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full h-full">
         
@@ -55,7 +54,7 @@ export function RecognizeScreen() {
             dir="ltr" 
             className="w-full flex flex-row gap-2 sm:gap-6 justify-center items-end bg-gray-50 p-4 sm:p-6 rounded-3xl border-2 border-gray-100 min-h-[150px]"
           >
-            {/* ARCHITECT NOTE: Using flex-col-reverse and flex-wrap-reverse ensures that the "incomplete" 
+            {/* Using flex-col-reverse and flex-wrap-reverse ensures that the "incomplete" 
                 rows or blocks are always placed at the top, mimicking physical building blocks. */}
             
             {thousandsBlocks.length > 0 && (
@@ -92,7 +91,8 @@ export function RecognizeScreen() {
               inputMode="numeric"
               pattern="[0-9]*"
               value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
+              onChange={(e) => setInputValue(e.target.value.replace(/\D/g, ''))}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }}
               disabled={store.interactionState === 'success'}
               placeholder="התשובה היא..."
               className="w-full text-center text-4xl sm:text-4xl font-black text-purple-700 bg-purple-50 border-4 border-purple-300 rounded-2xl py-3 focus:outline-none" 
@@ -105,26 +105,7 @@ export function RecognizeScreen() {
             >
               בדוק אותי!
             </button>
-            {/* ARCHITECT ADDITION: Strict Economy Skip Button */}
-            <div className="flex flex-col gap-1 mt-2">
-              <button
-                onClick={store.skipProblem}
-                disabled={store.coinsCollected < 10 || store.interactionState === 'success'}
-                className={`w-full py-3 rounded-2xl font-bold text-lg transition-all border-2 ${
-                  store.coinsCollected >= 10 && store.interactionState !== 'success'
-                    ? 'bg-orange-50 text-orange-700 border-orange-300 hover:bg-orange-100 active:scale-95 cursor-pointer'
-                    : 'bg-gray-50 text-gray-400 border-gray-200 opacity-80 cursor-not-allowed'
-                }`}
-              >
-                דלגו על השלב (עולה 10 ⭐)
-              </button>
-              
-              {store.coinsCollected < 10 && store.interactionState !== 'success' && (
-                <span className="text-xs font-bold text-red-500 text-center px-2 animate-pulse mt-1">
-                  אין מספיק כוכבים! שחקו במסכים אחרים כדי להרוויח עוד.
-                </span>
-              )}
-            </div>
+            <SkipButton label="דלגו על השלב" className="mt-2" />
           </div>
         </div>
       </div>

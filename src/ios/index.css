@@ -69,11 +69,6 @@ button:focus-visible,
   flex-shrink: 0;
 }
 
-.build-board {
-  min-height: 180px;
-  flex-basis: auto;
-}
-
 /* Block counts must not change the height of the iOS screen. */
 .app-shell[data-platform="ios"] :is(.build-screen, .recognize-screen) {
   overflow: hidden;

@@ -1,20 +1,26 @@
 import { useDraggable } from '@dnd-kit/core';
 import { MontessoriBlock as IBlock } from '../../domain/types';
 
+// The 10x10 grid of a hundred block, drawn as one background instead of 100 elements.
+const GRID_LINE = 'rgb(185 28 28 / 0.5) 1px, transparent 1px, transparent calc(100% - 1px), rgb(185 28 28 / 0.5) calc(100% - 1px)';
+const HUNDRED_GRID = {
+  backgroundImage: `linear-gradient(to right, ${GRID_LINE}), linear-gradient(to bottom, ${GRID_LINE})`,
+  backgroundSize: '10% 10%',
+};
+
 interface Props {
   id: string;
   type: IBlock['type'];
   isDraggable?: boolean;
-  isOverlay?: boolean;
   onRemove?: () => void;
   isGhosted?: boolean;
   onClick?: () => void;
 }
 
 export function MontessoriBlock({ 
-  id, type, isDraggable = false, isOverlay = false, onRemove, isGhosted = false, onClick
+  id, type, isDraggable = false, onRemove, isGhosted = false, onClick
 }: Props) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: id,
     data: { type },
     disabled: !isDraggable
@@ -41,7 +47,7 @@ export function MontessoriBlock({
   if (type === 'ten') {
     return (
       <div ref={setNodeRef} {...listeners} {...attributes} onClick={onClick}
-        className={`${baseStyles} ${interactStyles} bg-blue-600 rounded shadow ${ghostStyles} w-11 h-24 sm:h-36 ${isDragging && 'opacity-0'}`}
+        className={`${baseStyles} ${interactStyles} bg-blue-600 rounded shadow ${ghostStyles} w-11 h-24 sm:h-36 ${isDragging ? 'opacity-0' : ''}`}
       >
         {getOverlayMarker()}
         {Array.from({ length: 10 }).map((_, i) => (
@@ -53,14 +59,10 @@ export function MontessoriBlock({
 
   if (type === 'hundred') {
     return (
-      <div ref={setNodeRef} {...listeners} {...attributes} onClick={onClick}
-        className={`${baseStyles} ${interactStyles} bg-red-500 rounded-lg shadow-md ${ghostStyles} w-14 h-14 sm:w-28 sm:h-28 ${isDragging && 'opacity-0'}`}
+      <div ref={setNodeRef} {...listeners} {...attributes} onClick={onClick} style={HUNDRED_GRID}
+        className={`${baseStyles} ${interactStyles} bg-red-500 rounded-lg shadow-md ${ghostStyles} w-14 h-14 sm:w-28 sm:h-28 ${isDragging ? 'opacity-0' : ''}`}
       >
         {getOverlayMarker()}
-        {Array.from({ length: 100 }).map((_, i) => (
-          <div key={i} className="absolute w-[10%] h-[10%] border border-red-700/50"
-               style={{ left: `${(i % 10) * 10}%`, top: `${Math.floor(i / 10) * 10}%` }} />
-        ))}
       </div>
     );
   }
@@ -69,14 +71,14 @@ export function MontessoriBlock({
     const thousandSizeClass = "w-14 h-14 sm:w-32 sm:h-32";
     return (
       <div ref={setNodeRef} {...listeners} {...attributes} onClick={onClick}
-        className={`${baseStyles} ${interactStyles} bg-emerald-700 rounded-xl shadow-lg ${ghostStyles} ${thousandSizeClass} ${isDragging && 'opacity-0'}`}
+        className={`${baseStyles} ${interactStyles} bg-emerald-700 rounded-xl shadow-lg ${ghostStyles} ${thousandSizeClass} ${isDragging ? 'opacity-0' : ''}`}
       >
         {getOverlayMarker()}
       </div>
     );
   }
 
-  // ARCHITECT FIX: Decoupled Hitbox for Units
+  // Decoupled Hitbox for Units
   const unitVisualSizeClass = "w-5 h-5 sm:w-7 sm:h-7";
   const isToolboxUnit = isDraggable; // If it's draggable, it's sitting in the bottom toolbox
 

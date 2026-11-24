@@ -10,6 +10,8 @@ interface Props {
 export function NumberAnswer({ value, onChange, onSubmit, disabled }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const keypad = useRef<HTMLDivElement>(null);
+  // No answer in the game is longer than 4 digits.
+  const addDigit = (digit: string) => { if (value.length < 4) onChange(value + digit); };
 
   useEffect(() => {
     if (disabled) setIsOpen(false);
@@ -32,7 +34,7 @@ export function NumberAnswer({ value, onChange, onSubmit, disabled }: Props) {
         onKeyDown={event => {
           if (/^[0-9]$/.test(event.key)) {
             event.preventDefault();
-            onChange(value + event.key);
+            addDigit(event.key);
           } else if (event.key === 'Backspace') {
             event.preventDefault();
             onChange(value.slice(0, -1));
@@ -48,14 +50,14 @@ export function NumberAnswer({ value, onChange, onSubmit, disabled }: Props) {
       {isOpen && !disabled && (
         <div ref={keypad} role="group" aria-label="מקלדת מספרים" className="grid grid-cols-3 gap-2 mt-3" dir="ltr">
           {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(digit => (
-            <button key={digit} type="button" onClick={() => onChange(value + digit)}
+            <button key={digit} type="button" onClick={() => addDigit(digit)}
               className="rounded-xl bg-purple-50 border border-purple-200 min-h-12 text-2xl font-bold text-purple-800 active:bg-purple-200">
               {digit}
             </button>
           ))}
           <button type="button" aria-label="מחיקת ספרה" onClick={() => onChange(value.slice(0, -1))}
             className="rounded-xl bg-gray-100 min-h-12 text-xl">⌫</button>
-          <button type="button" onClick={() => onChange(value + '0')}
+          <button type="button" onClick={() => addDigit('0')}
             className="rounded-xl bg-purple-50 border border-purple-200 min-h-12 text-2xl font-bold text-purple-800">0</button>
           <button type="button" onClick={() => setIsOpen(false)}
             className="rounded-xl bg-purple-600 text-white min-h-12 font-bold">סיום</button>

@@ -9,7 +9,12 @@ export class LocalStorageRepository implements IProgressRepository {
     // Simulating async behavior for future API network latency
     return new Promise((resolve) => {
       const data = localStorage.getItem(`${this.storageKeyPrefix}${userId}`);
-      resolve(data ? JSON.parse(data) : null);
+      try {
+        const saved = data ? JSON.parse(data) : null;
+        resolve(saved && typeof saved === 'object' ? saved : null);
+      } catch {
+        resolve(null); // unreadable save: start a fresh game instead of a blank board
+      }
     });
   }
 
