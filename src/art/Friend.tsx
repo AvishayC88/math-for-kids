@@ -128,10 +128,8 @@ export function Friend({ friend = 'owl', mood = 'idle', size = 56, label }: Prop
           <path d="M8 6 l1.5 3.5 3.5 .5 -2.7 2.2 .8 3.6 -3.1 -2 -3.1 2 .8 -3.6 -2.7 -2.2 3.5 -.5 Z" fill={palette.star.icon} />
         </>
       )}
-      {mood === 'encourage' && (
-        <path d="M5 15 c0-3.2 4.2-3.2 4.2 0 c0-3.2 4.2-3.2 4.2 0 c0 3.4-4.2 5.4-4.2 6.6 c0-1.2-4.2-3.2-4.2-6.6z" fill="#F08AA4" />
-      )}
-      {/* The owl also lifts its wings: both when happy, one when encouraging. */}
+      {/* Only a correct answer gets a decoration (the stars); encouraging stays plain, so a wrong
+          answer never looks rewarded. The owl also lifts its wings: both when happy, one when encouraging. */}
       {friend === 'owl' && mood === 'happy' && (
         <>
           <ellipse cx="12" cy="45" rx="6" ry="13" fill={OWL_WING} transform="rotate(30 12 45)" />
