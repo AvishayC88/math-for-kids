@@ -20,11 +20,14 @@ npm run dev
 - `src/ios/`: independent iOS interface, including its entry point, HTML, CSS,
   components, safe-area layout and number pad.
 - `src/store/`, `src/domain/` and `src/data/`: shared game logic and persistence.
+- `src/art/`: shared drawings (blocks, owl, icons), colours and the bundled Rubik
+  font. These are plain drawings without layout; each interface places them itself.
 - `ios/`: generated native Xcode project, separate from the iOS React interface.
 
 Change iOS presentation only in `src/ios/`. The iOS interface imports shared
-game logic but does not import web components or web CSS. Changes to shared
-logic intentionally affect both applications and should be checked in both.
+game logic and art but does not import web components or web CSS. Changes to
+shared logic or art intentionally affect both applications and should be checked
+in both.
 
 Web and iOS have separate Vite entry points, TypeScript checks, Tailwind scans,
 and output folders.

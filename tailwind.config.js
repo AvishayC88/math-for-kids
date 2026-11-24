@@ -1,3 +1,5 @@
+import { palette, fontFamily } from './src/art/palette.ts';
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
@@ -6,7 +8,7 @@ export default {
     "!./src/ios/**",
   ],
   theme: {
-    extend: {},
+    extend: { colors: palette, fontFamily: { rubik: fontFamily } },
   },
   plugins: [],
 }
