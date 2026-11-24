@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { MontessoriBlock, GameState, PlaceValue, GameMode, DifficultyLevel, MathDifficultyLevel } from '../domain/types';
 import { LocalStorageRepository } from '../data/LocalStorageRepository';
+import { DEFAULT_FRIEND, FRIENDS, type FriendId } from '../domain/friends';
 
 const repo = new LocalStorageRepository();
 const USER_ID = 'daughter_user_1';
@@ -68,18 +69,24 @@ interface GameStore extends GameState {
   useLifeline: () => void;
   resetBoard: () => void;
   buySticker: (stickerId: string, cost: number) => void;
+  buyFriend: (id: FriendId) => void;
+  selectFriend: (id: FriendId) => void;
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
   gameMode: 'build', difficulty: 'tens', mathDifficulty: 'upTo10', lockedLevels: {}, allowedOperators: ['+', '-'],
   currentTargetNumber: 0, currentMathProblem: null, isLifelineUsed: false,
-  placedBlocks: [], coinsCollected: 0, unlockedStickers: [],
+  placedBlocks: [], coinsCollected: 0, unlockedStickers: [], ownedFriends: [DEFAULT_FRIEND], selectedFriend: DEFAULT_FRIEND,
   interactionState: 'playing', feedbackMessage: null,
 
   initGame: async () => {
     const savedProgress = await repo.getUserProgress(USER_ID);
     if (savedProgress) {
-      set({ ...savedProgress, unlockedStickers: savedProgress.unlockedStickers || [], lockedLevels: savedProgress.lockedLevels || {}, allowedOperators: savedProgress.allowedOperators || ['+', '-'], interactionState: 'playing', feedbackMessage: null });
+      // Saves from before friends existed have none: everyone owns the owl.
+      const ownedFriends = [...new Set<FriendId>([DEFAULT_FRIEND, ...(savedProgress.ownedFriends || [])])]
+        .filter(id => FRIENDS.some(friend => friend.id === id));
+      const selectedFriend = ownedFriends.includes(savedProgress.selectedFriend) ? savedProgress.selectedFriend : DEFAULT_FRIEND;
+      set({ ...savedProgress, unlockedStickers: savedProgress.unlockedStickers || [], ownedFriends, selectedFriend, lockedLevels: savedProgress.lockedLevels || {}, allowedOperators: savedProgress.allowedOperators || ['+', '-'], interactionState: 'playing', feedbackMessage: null });
 
       const state = get();
       if (savedProgress.interactionState === 'success') {
@@ -385,5 +392,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
       set({ coinsCollected: state.coinsCollected - cost, unlockedStickers: [...state.unlockedStickers, id] });
       repo.saveUserProgress(USER_ID, get());
     }
+  },
+
+  // A new friend becomes the guide straight away. The price comes from the catalog, not the caller.
+  buyFriend: (id: FriendId) => {
+    const state = get();
+    const friend = FRIENDS.find(f => f.id === id);
+    if (!friend || state.ownedFriends.includes(id) || state.coinsCollected < friend.cost) return;
+    set({ coinsCollected: state.coinsCollected - friend.cost, ownedFriends: [...state.ownedFriends, id], selectedFriend: id });
+    repo.saveUserProgress(USER_ID, get());
+  },
+
+  selectFriend: (id: FriendId) => {
+    if (!get().ownedFriends.includes(id)) return;
+    set({ selectedFriend: id });
+    repo.saveUserProgress(USER_ID, get());
   }
 }));

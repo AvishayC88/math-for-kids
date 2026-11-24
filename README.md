@@ -20,7 +20,7 @@ npm run dev
 - `src/ios/`: independent iOS interface, including its entry point, HTML, CSS,
   components, safe-area layout and number pad.
 - `src/store/`, `src/domain/` and `src/data/`: shared game logic and persistence.
-- `src/art/`: shared drawings (blocks, owl, icons), colours and the bundled Rubik
+- `src/art/`: shared drawings (blocks, the friends, icons), colours and the bundled Rubik
   font. These are plain drawings without layout; each interface places them itself.
 - `ios/`: generated native Xcode project, separate from the iOS React interface.
 

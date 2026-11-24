@@ -1,3 +1,5 @@
+import type { FriendId } from './friends';
+
 export type PlaceValue = 'unit' | 'ten' | 'hundred' | 'thousand';
 export type GameMode = 'build' | 'recognize' | 'math'; 
 
@@ -42,6 +44,8 @@ export interface GameState {
 
   coinsCollected: number; 
   unlockedStickers: string[];
+  ownedFriends: FriendId[];
+  selectedFriend: FriendId;
   interactionState: 'playing' | 'success' | 'error';
   feedbackMessage: string | null;
   lastReward?: number; // stars earned by the last correct answer, shown while it is celebrated 

@@ -1,12 +1,14 @@
 import type { ReactNode } from 'react';
-import { Owl, type Mood } from '../../art/Owl';
+import { useGameStore } from '../../store/useGameStore';
+import { Friend, type Mood } from '../../art/Friend';
 import { StarIcon } from '../../art/icons';
 
-// The owl and its speech bubble at the top of every activity.
+// The chosen friend (the owl at first) and its speech bubble at the top of every activity.
 export function Guide({ mood, children }: { mood: Mood; children: ReactNode }) {
+  const friend = useGameStore(state => state.selectedFriend);
   return (
     <section className="shrink-0 flex items-center gap-2.5">
-      <Owl mood={mood} size={56} />
+      <Friend friend={friend} mood={mood} size={56} />
       <div className="relative flex-1 min-w-0 min-h-[56px] px-4 py-2 rounded-[20px] bg-card shadow-card flex items-center justify-between gap-3">
         <div aria-hidden="true" className="absolute -right-1.5 top-1/2 -mt-[7px] w-3.5 h-3.5 bg-card rotate-45" />
         {children}
