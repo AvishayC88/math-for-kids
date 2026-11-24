@@ -1,197 +1,148 @@
 import { useState } from 'react';
 import { useGameStore } from '../store/useGameStore';
-import { DifficultyLevel, MathDifficultyLevel } from '../domain/types';
+import type { DifficultyLevel, MathDifficultyLevel, MathProblem } from '../domain/types';
+import { CheckIcon, CloseIcon, LockIcon } from '../art/icons';
+import { palette } from '../art/palette';
+import { IconButton } from './IconButton';
 
-interface Props {
-  onClose: () => void;
-}
+type Operator = MathProblem['operator'];
 
-export function SettingsScreen({ onClose }: Props) {
-  const gameMode = useGameStore((state) => state.gameMode);
-  
-  const difficulty = useGameStore((state) => state.difficulty);
-  const setDifficulty = useGameStore((state) => state.setDifficulty);
-  
-  const mathDifficulty = useGameStore((state) => state.mathDifficulty);
-  const setMathDifficulty = useGameStore((state) => state.setMathDifficulty);
-  
-  const lockedLevels = useGameStore((state) => state.lockedLevels);
-  const toggleLevelLock = useGameStore((state) => state.toggleLevelLock);
-  
-  const allowedOperators = useGameStore((state) => state.allowedOperators) || ['+', '-'];
-  const toggleOperator = useGameStore((state) => state.toggleOperator);
-  
+const BUILD_LEVELS: { id: DifficultyLevel; label: string }[] = [
+  { id: 'tens', label: 'עשרות' },
+  { id: 'hundreds', label: 'מאות' },
+  { id: 'thousands', label: 'אלפים' },
+];
+const MATH_LEVELS: { id: MathDifficultyLevel; label: string }[] = [
+  { id: 'upTo10', label: 'עד 10' },
+  { id: 'upTo20', label: 'עד 20' },
+  { id: 'upTo100', label: 'עד 100' },
+  { id: 'upTo1000', label: 'עד 1000' },
+];
+const OPERATORS: { id: Operator; label: string }[] = [
+  { id: '+', label: 'חיבור +' },
+  { id: '-', label: 'חיסור −' },
+  { id: '*', label: 'כפל ×' },
+  { id: '/', label: 'חילוק ÷' },
+];
+
+export function SettingsScreen({ onClose }: { onClose: () => void }) {
+  const gameMode = useGameStore(state => state.gameMode);
+  const difficulty = useGameStore(state => state.difficulty);
+  const setDifficulty = useGameStore(state => state.setDifficulty);
+  const mathDifficulty = useGameStore(state => state.mathDifficulty);
+  const setMathDifficulty = useGameStore(state => state.setMathDifficulty);
+  const lockedLevels = useGameStore(state => state.lockedLevels);
+  const toggleLevelLock = useGameStore(state => state.toggleLevelLock);
+  const allowedOperators = useGameStore(state => state.allowedOperators);
+  const toggleOperator = useGameStore(state => state.toggleOperator);
   const [secretTaps, setSecretTaps] = useState(0);
 
   const isMathMode = gameMode === 'math';
-  const optionType = isMathMode ? 'math' : 'build';
+  const levels = isMathMode ? MATH_LEVELS : BUILD_LEVELS;
+  const selected = isMathMode ? mathDifficulty : difficulty;
 
-  // Explicit full Tailwind class names to prevent PurgeCSS from deleting them.
-  const buildOptions: { id: DifficultyLevel, label: string, selectedClass: string, hoverClass: string }[] = [
-    { id: 'tens', label: 'עשרות', selectedClass: 'bg-blue-500 border-blue-600 text-white scale-105 shadow-md', hoverClass: 'hover:border-blue-300' },
-    { id: 'hundreds', label: 'מאות', selectedClass: 'bg-red-500 border-red-600 text-white scale-105 shadow-md', hoverClass: 'hover:border-red-300' },
-    { id: 'thousands', label: 'אלפים', selectedClass: 'bg-emerald-600 border-emerald-700 text-white scale-105 shadow-md', hoverClass: 'hover:border-emerald-300' },
-  ];
-
-  const mathOptions: { id: MathDifficultyLevel, label: string, selectedClass: string, hoverClass: string }[] = [
-    { id: 'upTo10', label: 'עד 10', selectedClass: 'bg-purple-500 border-purple-600 text-white scale-105 shadow-md', hoverClass: 'hover:border-purple-300' },
-    { id: 'upTo20', label: 'עד 20', selectedClass: 'bg-purple-500 border-purple-600 text-white scale-105 shadow-md', hoverClass: 'hover:border-purple-300' },
-    { id: 'upTo100', label: 'עד 100', selectedClass: 'bg-purple-500 border-purple-600 text-white scale-105 shadow-md', hoverClass: 'hover:border-purple-300' },
-    { id: 'upTo1000', label: 'עד 1000', selectedClass: 'bg-purple-500 border-purple-600 text-white scale-105 shadow-md', hoverClass: 'hover:border-purple-300' },
-  ];
-
-  const currentOptions = isMathMode ? mathOptions : buildOptions;
-  const currentSelected = isMathMode ? mathDifficulty : difficulty;
-
-  const handleSelect = (id: string) => {
+  const selectLevel = (id: string) => {
     if (lockedLevels[id]) return;
-    if (id === currentSelected) { onClose(); return; }
-    if (isMathMode) setMathDifficulty(id as MathDifficultyLevel);
-    else setDifficulty(id as DifficultyLevel);
+    if (id !== selected) {
+      if (isMathMode) setMathDifficulty(id as MathDifficultyLevel);
+      else setDifficulty(id as DifficultyLevel);
+    }
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-50 z-[100] flex flex-col font-sans select-none" dir="rtl">
-      <div className="bg-white border-b-2 border-gray-100 p-4 flex justify-between items-center shrink-0 shadow-sm">
-        <h2 
-          onClick={() => setSecretTaps(prev => prev + 1)}
-          className="text-2xl font-extrabold text-gray-800 transition-colors active:text-gray-400"
-        >
-          הגדרות קושי
-        </h2>
-        <button onClick={onClose} className="w-10 h-10 bg-gray-100 text-gray-600 rounded-full flex items-center justify-center font-bold text-xl hover:bg-gray-200 transition-colors">✕</button>
-      </div>
+    <div dir="rtl" className="fixed inset-0 z-[100] bg-paper overflow-y-auto overscroll-contain">
+      <div className="max-w-xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-10 flex flex-col gap-7">
+        <header className="h-11 flex items-center justify-between">
+          {/* Five taps on the title open the parent controls. */}
+          <h1 onClick={() => setSecretTaps(taps => taps + 1)} className="text-[22px] sm:text-2xl font-bold">הגדרות קושי</h1>
+          <IconButton label="סגירת הגדרות" onClick={onClose}><CloseIcon color={palette.icon} /></IconButton>
+        </header>
 
-      <div className="flex-1 overflow-y-auto p-6 flex flex-col items-center">
-        
-        {/* Contextual Developer Menu */}
         {secretTaps >= 5 && (
-          <div className="w-full max-w-sm mb-6 p-4 bg-red-50 border-2 border-red-200 rounded-2xl flex flex-col items-center gap-2">
-            <span className="text-red-700 font-bold text-lg">בקרת הורים סודית 🕵️‍♂️</span>
-            <span className="text-xs text-red-500 mb-2 font-bold">לחצו כדי לנעול/לפתוח (חובה להשאיר רמה אחת)</span>
-            
-            <div className="flex flex-wrap gap-2 justify-center" dir="rtl">
-               {currentOptions.map(opt => {
-                 const isLocked = !!lockedLevels[opt.id];
-                 return (
-                   <button 
-                     key={`dev-${opt.id}`} 
-                     onClick={() => toggleLevelLock(opt.id, optionType)} 
-                     className={`px-4 py-2 rounded-full font-bold text-sm text-white transition-all active:scale-95 shadow-sm ${isLocked ? 'bg-red-500' : 'bg-green-500'}`}
-                   >
-                     {opt.label} {isLocked ? '🔒' : '✅'}
-                   </button>
-                 );
-               })}
+          <section className="p-4 rounded-[20px] bg-card shadow-card flex flex-col gap-3">
+            <h2 className="flex items-center gap-2 text-lg font-bold text-place-hundred-text">
+              <LockIcon size={18} color={palette.place.hundred.text} />
+              בקרת הורים
+            </h2>
+            <p className="text-sm text-muted">לחצו כדי לנעול או לפתוח. רמה אחת תמיד נשארת פתוחה.</p>
+            <div className="flex flex-wrap gap-2">
+              {levels.map(level => (
+                <LockChip key={level.id} label={level.label} locked={!!lockedLevels[level.id]}
+                  onClick={() => toggleLevelLock(level.id, isMathMode ? 'math' : 'build')} />
+              ))}
             </div>
-
             {isMathMode && (
               <>
-                <div className="w-full h-px bg-red-200 my-2"></div>
-                <span className="text-xs text-red-500 mb-2 font-bold">נעילת סוגי תרגילים (חובה להשאיר לפחות אחד)</span>
-                <div className="flex flex-wrap gap-2 justify-center" dir="rtl">
-                  {[
-                    { id: '+', label: 'חיבור (+)' },
-                    { id: '-', label: 'חיסור (-)' },
-                    { id: '*', label: 'כפל (×)' },
-                    { id: '/', label: 'חילוק (÷)' },
-                  ].map(op => {
-                    const isLocked = !!lockedLevels[op.id];
-                    return (
-                      <button
-                        key={`op-${op.id}`}
-                        onClick={() => toggleLevelLock(op.id, 'operator')}
-                        className={`px-4 py-2 rounded-full font-bold text-sm text-white transition-all active:scale-95 shadow-sm ${isLocked ? 'bg-red-500' : 'bg-green-500'}`}
-                      >
-                        {op.label} {isLocked ? '🔒' : '✅'}
-                      </button>
-                    );
-                  })}
+                <p className="mt-1 text-sm text-muted">סוגי תרגילים (אחד תמיד נשאר פתוח)</p>
+                <div className="flex flex-wrap gap-2">
+                  {OPERATORS.map(op => (
+                    <LockChip key={op.id} label={op.label} locked={!!lockedLevels[op.id]} onClick={() => toggleLevelLock(op.id, 'operator')} />
+                  ))}
                 </div>
               </>
             )}
-          </div>
+          </section>
         )}
 
-        <div className="w-full max-w-sm flex flex-col gap-4 mt-4">
-          <div className="text-center mb-2">
-            <h3 className="text-xl font-bold text-gray-500 mb-2">{isMathMode ? 'רמת תרגילים' : 'רמת המספרים'}</h3>
-            <p className="text-sm text-gray-400">{isMathMode ? 'בחרו את גבול התוצאה לתרגילים' : 'בחרו אילו מספרים יופיעו במשחק'}</p>
-          </div>
-
-          {currentOptions.map(opt => {
-            const isLocked = !!lockedLevels[opt.id];
-            const isSelected = currentSelected === opt.id;
-            
-            // Apply styles based on precise pre-defined strings
-            let styleClass = '';
-            if (isLocked) {
-              styleClass = 'bg-gray-100 border-gray-200 text-gray-400 opacity-60';
-            } else if (isSelected) {
-              styleClass = opt.selectedClass;
-            } else {
-              styleClass = `bg-white border-gray-200 text-gray-600 ${opt.hoverClass}`;
-            }
-
+        <section className="flex flex-col gap-2.5">
+          <h2 className="text-lg font-bold">{isMathMode ? 'רמת תרגילים' : 'רמת המספרים'}</h2>
+          <p className="-mt-1 text-sm text-muted">{isMathMode ? 'בחרו את גבול התוצאה לתרגילים' : 'בחרו אילו מספרים יופיעו במשחק'}</p>
+          {levels.map(level => {
+            const locked = !!lockedLevels[level.id];
+            const isSelected = level.id === selected;
             return (
-              <button 
-                key={opt.id}
-                onClick={() => handleSelect(opt.id)} 
-                disabled={isLocked}
-                className={`w-full py-4 rounded-2xl font-bold text-2xl transition-all border-4 flex justify-center items-center gap-2 ${styleClass}`}
-              >
-                {opt.label}
-                {isLocked && <span className="text-xl">🔒</span>}
+              <button key={level.id} type="button" onClick={() => selectLevel(level.id)} disabled={locked} aria-pressed={isSelected}
+                className={`h-14 rounded-2xl text-xl font-bold flex items-center justify-center gap-2 ${
+                  locked ? 'bg-card text-muted opacity-50'
+                    : isSelected ? 'bg-accent-soft text-accent ring-2 ring-inset ring-accent'
+                      : 'bg-card text-ink shadow-card hover:bg-halo'
+                }`}>
+                {level.label}
+                {locked && <LockIcon size={18} color={palette.muted} />}
               </button>
             );
           })}
-        </div>
+        </section>
 
         {isMathMode && (
-          <div className="w-full max-w-sm flex flex-col gap-4 mt-8 pb-8">
-            <div className="text-center mb-2">
-              <h3 className="text-xl font-bold text-gray-500 mb-2">סוגי תרגילים</h3>
-              <p className="text-sm text-gray-400">בחרו אילו סוגי תרגילים יופיעו במשחק</p>
-            </div>
-            <div className="grid grid-cols-2 gap-4" dir="rtl">
-              {[
-                { id: '+' as const, label: 'חיבור (+)' },
-                { id: '-' as const, label: 'חיסור (-)' },
-                { id: '*' as const, label: 'כפל (×)' },
-                { id: '/' as const, label: 'חילוק (÷)' },
-              ].map(op => {
-                const isLocked = !!lockedLevels[op.id];
-                const isActive = allowedOperators.includes(op.id);
-
-                let styleClass = '';
-                if (isLocked) {
-                  styleClass = 'bg-gray-100 border-gray-200 text-gray-400 opacity-60';
-                } else if (isActive) {
-                  styleClass = 'bg-purple-100 border-purple-500 text-purple-700 shadow-sm scale-105';
-                } else {
-                  styleClass = 'bg-white border-gray-200 text-gray-600 hover:bg-gray-100';
-                }
-
+          <section className="flex flex-col gap-2.5">
+            <h2 className="text-lg font-bold">סוגי תרגילים</h2>
+            <p className="-mt-1 text-sm text-muted">בחרו אילו סוגי תרגילים יופיעו במשחק</p>
+            <div className="grid grid-cols-2 gap-2.5">
+              {OPERATORS.map(op => {
+                const locked = !!lockedLevels[op.id];
+                const active = allowedOperators.includes(op.id);
                 return (
-                  <button
-                    key={op.id}
-                    onClick={() => {
-                      if (!isLocked) toggleOperator(op.id);
-                    }}
-                    disabled={isLocked}
-                    className={`py-3 rounded-xl font-bold text-lg transition-all border-2 flex justify-center items-center gap-2 ${styleClass}`}
-                  >
+                  <button key={op.id} type="button" onClick={() => toggleOperator(op.id)} disabled={locked} aria-pressed={active}
+                    className={`h-12 rounded-xl text-lg font-bold flex items-center justify-center gap-2 ${
+                      locked ? 'bg-card text-muted opacity-50'
+                        : active ? 'bg-accent-soft text-accent ring-2 ring-inset ring-accent'
+                          : 'bg-card text-muted shadow-card hover:bg-halo'
+                    }`}>
                     {op.label}
-                    {isLocked && <span className="text-sm">🔒</span>}
+                    {locked && <LockIcon size={16} color={palette.muted} />}
                   </button>
                 );
               })}
             </div>
-          </div>
+          </section>
         )}
-
       </div>
     </div>
+  );
+}
+
+function LockChip({ label, locked, onClick }: { label: string; locked: boolean; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} aria-pressed={locked}
+      className={`h-11 px-4 rounded-full text-sm font-bold flex items-center gap-1.5 ${
+        locked ? 'bg-place-hundred-tint text-place-hundred-text' : 'bg-place-unit-tint text-place-unit-text'
+      }`}>
+      {locked
+        ? <LockIcon size={15} color={palette.place.hundred.text} />
+        : <CheckIcon size={15} color={palette.place.unit.text} />}
+      {label}
+    </button>
   );
 }

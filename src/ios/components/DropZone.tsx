@@ -19,7 +19,8 @@ export function DropZone({ type, blocks, onRemove }: { type: PlaceValue; blocks:
   const { isOver, setNodeRef } = useDroppable({ id: `zone-${type}`, data: { accepts: type } });
   const area = useRef<HTMLDivElement>(null);
   const { width, height } = useElementSize(area);
-  const scale = fitScale(type, blocks.length, width, height, GAP);
+  // Each placed block has a 4px tap margin around it (see PlacedBlock); keep room for it at the edges.
+  const scale = fitScale(type, blocks.length, width - 8, height - 8, GAP);
 
   return (
     <div ref={setNodeRef}

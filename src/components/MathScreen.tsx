@@ -1,142 +1,177 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useGameStore } from '../store/useGameStore';
-import { MontessoriBlock } from './MontessoriBlock';
+import type { MathProblem, MontessoriBlock as BlockData } from '../domain/types';
+import { Block } from '../art/Block';
+import { LifebuoyIcon } from '../art/icons';
+import { palette } from '../art/palette';
+import { Guide, GuideText } from './Guide';
+import { AnswerSlot, NumberPad } from './NumberPad';
+import { CheckButton } from './CheckButton';
 import { SkipButton } from './SkipButton';
 
+const SIGN = { '+': '+', '-': '−', '*': '×', '/': '÷' } as const;
+// Lifeline blocks start at full size and shrink, down to MIN_SCALE, until they all fit.
+const LIFELINE_SCALE = 1;
+const MIN_SCALE = 0.4;
+// Groups of a × or ÷ lifeline sit in a near-square grid: up to 3 side by side, then 2, 3, 4 or 5 per row.
+const GROUP_COLUMNS = ['grid-cols-1', 'grid-cols-1', 'grid-cols-2', 'grid-cols-3', 'grid-cols-2', 'grid-cols-3', 'grid-cols-3', 'grid-cols-4', 'grid-cols-4', 'grid-cols-5', 'grid-cols-5'];
+
+// Exercises: the answer is typed straight into the equation.
 export function MathScreen() {
-  const store = useGameStore();
-  const [inputValue, setInputValue] = useState('');
+  const problem = useGameStore(state => state.currentMathProblem);
+  const placedBlocks = useGameStore(state => state.placedBlocks);
+  const interactionState = useGameStore(state => state.interactionState);
+  const feedbackMessage = useGameStore(state => state.feedbackMessage);
+  const lastReward = useGameStore(state => state.lastReward);
+  const isLifelineUsed = useGameStore(state => state.isLifelineUsed);
+  const showLifeline = useGameStore(state => state.useLifeline);
+  const toggleBlockGhostState = useGameStore(state => state.toggleBlockGhostState);
+  const checkMathAnswer = useGameStore(state => state.checkMathAnswer);
+  const [answer, setAnswer] = useState('');
+  const solved = interactionState === 'success';
 
-  useEffect(() => { setInputValue(''); }, [store.currentMathProblem]);
+  useEffect(() => { setAnswer(''); }, [problem]);
+  const submit = useCallback(() => {
+    const value = parseInt(answer, 10);
+    if (!isNaN(value)) checkMathAnswer(value);
+  }, [answer, checkMathAnswer]);
 
-  const handleSubmit = () => {
-    const num = parseInt(inputValue, 10);
-    if (!isNaN(num)) store.checkMathAnswer(num);
-  };
-
-  if (!store.currentMathProblem) return null;
-  const { num1, num2, operator } = store.currentMathProblem;
+  if (!problem) return null;
+  const { num1, num2, operator } = problem;
+  // Long numbers shrink the equation so it stays on one line; a narrow screen shrinks it too.
+  const length = String(num1).length + String(num2).length + Math.max(answer.length, 2);
+  const largest = length <= 6 ? 84 : length <= 8 ? 72 : 60;
 
   return (
-    <div className="h-full w-full pt-4 flex flex-col font-sans select-none bg-white overflow-hidden" dir="rtl">
-      <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full h-full">
-        
-        {/* Header */}
-        <div className="text-center pt-2 sm:pt-6 pb-2 shrink-0 px-4">
-          <div dir="ltr" className="flex justify-center items-center gap-4 mb-4">
-             <span className="text-6xl sm:text-8xl font-black text-gray-800">{num1}</span>
-             <span className="text-4xl sm:text-6xl font-bold text-purple-500">
-               {operator === '*' ? '×' : operator === '/' ? '÷' : operator}
-             </span>
-             <span className="text-6xl sm:text-8xl font-black text-gray-800">{num2}</span>
-             <span className="text-4xl sm:text-6xl font-bold text-purple-500">=</span>
-             <span className="text-6xl sm:text-8xl font-black text-purple-200">?</span>
-          </div>
-          {store.interactionState === 'error' && store.feedbackMessage && (
-            <div className="mt-1 p-2 sm:p-4 max-w-lg mx-auto bg-orange-100 text-orange-800 rounded-xl border border-orange-200 shadow-sm">
-              <span className="font-bold text-sm sm:text-xl">{store.feedbackMessage}</span>
-            </div>
-          )}
-          {store.interactionState === 'success' && store.feedbackMessage && (
-            <div className="mt-1 p-2 sm:p-4 max-w-lg mx-auto bg-green-100 text-green-800 rounded-xl shadow-sm text-sm sm:text-2xl font-bold">
-              {store.feedbackMessage}
-            </div>
-          )}
+    <>
+      <Guide mood={solved ? 'happy' : interactionState === 'error' ? 'encourage' : 'asks'}>
+        <GuideText task="כמה זה?" state={interactionState} feedback={feedbackMessage} celebration="תשובה נכונה!" reward={lastReward} />
+      </Guide>
+
+      <section aria-label="התרגיל" className="mt-3.5 self-center w-[min(640px,100%)] px-4 py-5 rounded-[28px] bg-card shadow-card flex justify-center">
+        <div dir="ltr" className="flex items-center gap-[.22em] font-extrabold text-ink leading-none"
+          style={{ fontSize: `clamp(34px, 9vw, ${largest}px)` }}>
+          <span>{num1}</span>
+          <span className="text-[.72em] font-bold text-accent-muted">{SIGN[operator]}</span>
+          <span>{num2}</span>
+          <span className="text-[.72em] font-bold text-accent-muted">=</span>
+          <AnswerSlot value={answer} correct={solved} />
+        </div>
+      </section>
+
+      {/* The pad on the right and the lifeline on the left on a wide screen; stacked on a phone. */}
+      <div className="mt-[18px] flex flex-col sm:flex-row items-stretch justify-center gap-5">
+        <div className="sm:w-[340px] shrink-0 flex flex-col gap-2.5">
+          <NumberPad value={answer} onChange={setAnswer} onSubmit={submit} disabled={solved} />
+          <CheckButton onCheck={submit} canCheck={!!answer} nextLabel="התרגיל הבא מגיע…" />
+          <p className="text-center text-[13px] text-muted">אפשר גם להקליד במקלדת וללחוץ Enter</p>
         </div>
 
-        {/* Lifeline Area */}
-        <div className="flex-1 min-h-0 overflow-y-auto px-4 flex flex-col items-center">
-          {!store.isLifelineUsed ? (
-            <button onClick={store.useLifeline} className="mt-8 flex flex-col items-center gap-2 group">
-              <div className="w-20 h-20 bg-blue-50 border-4 border-blue-200 rounded-3xl flex items-center justify-center text-4xl group-active:scale-90 transition-transform shadow-sm">
-                🛟
-              </div>
-              <span className="text-blue-500 font-bold uppercase tracking-wide text-sm">גלגל הצלה</span>
-            </button>
+        {/* On a phone an open lifeline moves above the pad, where it is seen. */}
+        <section aria-label="גלגל הצלה"
+          className={`${isLifelineUsed ? 'order-first sm:order-none h-[280px]' : 'h-[320px]'} sm:h-auto sm:flex-1 sm:max-w-[440px] p-5 rounded-3xl bg-card shadow-card flex flex-col`}>
+          {isLifelineUsed ? (
+            <Lifeline key={`${num1}${operator}${num2}`} problem={problem} blocks={placedBlocks} onToggle={toggleBlockGhostState} />
           ) : (
-            <div className="w-full mt-4 flex justify-center">
-              {operator === '+' && (
-                <div dir="ltr" className="flex flex-row items-center justify-center gap-2 sm:gap-8 bg-blue-50/50 p-6 rounded-3xl border-2 border-blue-100 w-full">
-                  <div className="bg-green-50/50 p-4 rounded-3xl border-2 border-green-100 flex flex-wrap gap-2 justify-center max-w-[42%]">
-                    {store.placedBlocks.filter(b => b.groupId === 1).map((b, idx) => <MontessoriBlock key={`g1-${idx}`} id={b.id} type={b.type} />)}
-                  </div>
-                  <div className="text-4xl font-black text-purple-300 shrink-0">+</div>
-                  <div className="bg-blue-50/50 p-4 rounded-3xl border-2 border-blue-100 flex flex-wrap gap-2 justify-center max-w-[42%]">
-                    {store.placedBlocks.filter(b => b.groupId === 2).map((b, idx) => <MontessoriBlock key={`g2-${idx}`} id={b.id} type={b.type} />)}
-                  </div>
-                </div>
-              )}
-
-              {operator === '-' && (
-                <div className="w-full flex flex-col items-center gap-4 bg-red-50/30 p-6 rounded-3xl border-2 border-red-100">
-                  <div className="bg-white px-6 py-2 rounded-full border-2 border-red-200 text-red-600 font-bold shadow-sm animate-pulse">
-                    החסירו {num2} קוביות (לחצו עליהן) 👇
-                  </div>
-                  <div dir="ltr" className="flex flex-row flex-wrap gap-2 justify-center">
-                    {store.placedBlocks.map((b, idx) => (
-                      <MontessoriBlock 
-                        key={`sub-${idx}`} 
-                        id={b.id} 
-                        type={b.type} 
-                        isGhosted={b.isGhosted}
-                        onClick={() => store.toggleBlockGhostState(b.id)} 
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {(operator === '*' || operator === '/') && (
-                <div className="w-full flex flex-col items-center gap-4 bg-purple-50/30 p-6 rounded-3xl border-2 border-purple-100 max-h-80 sm:max-h-96 overflow-y-auto">
-                  <div className="bg-white px-4 sm:px-6 py-2 rounded-full border-2 border-purple-200 text-purple-600 font-bold shadow-sm text-center">
-                    {operator === '*' ? `יש כאן ${num1} קבוצות של ${num2}` : `חילקנו ${num1} ל-${num2} קבוצות שוות`} 👇
-                  </div>
-                  <div className="flex flex-col gap-4 w-full px-2" dir="ltr">
-                    {Array.from({ length: operator === '*' ? num1 : num2 }).map((_, idx) => {
-                      const gId = idx + 1;
-                      const groupBlocks = store.placedBlocks.filter(b => b.groupId === gId);
-                      return (
-                        <div key={`group-${gId}`} className="bg-white/80 p-3 rounded-2xl border-2 border-purple-200 flex flex-wrap gap-2 justify-center shadow-sm">
-                          {groupBlocks.map((b, bIdx) => (
-                            <MontessoriBlock key={`g${gId}-${bIdx}`} id={b.id} type={b.type} />
-                          ))}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+            <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center">
+              <div className="w-[72px] h-[72px] rounded-full bg-place-ten-tint flex items-center justify-center">
+                <LifebuoyIcon size={36} color={palette.place.ten.text} />
+              </div>
+              <p className="text-[19px] font-bold">צריכים עזרה?</p>
+              <p className="text-[15px] text-muted">הקוביות יראו לכם את התרגיל</p>
+              <button type="button" onClick={showLifeline} disabled={solved}
+                className="mt-1 h-11 px-5 rounded-full bg-place-ten-tint text-place-ten-text text-[15px] font-bold enabled:hover:brightness-95 disabled:opacity-40">
+                גלגל הצלה
+              </button>
             </div>
           )}
-        </div>
-
-        {/* Input & Actions Area */}
-        <div className="shrink-0 bg-white border-t-2 border-gray-100 p-4 sm:p-6 z-20">
-          <div className="max-w-sm mx-auto flex flex-col gap-3">
-            <input 
-              type="text" 
-              inputMode="numeric" 
-              pattern="[0-9]*" 
-              value={inputValue} 
-              onChange={(e) => setInputValue(e.target.value.replace(/\D/g, ''))}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }} 
-              disabled={store.interactionState === 'success'} 
-              placeholder="התשובה היא..." 
-              className="w-full text-center text-4xl sm:text-4xl font-black text-purple-700 bg-purple-50 border-4 border-purple-300 rounded-2xl py-3 focus:outline-none" 
-            />
-            <button 
-              onClick={handleSubmit} 
-              disabled={!inputValue || store.interactionState === 'success'} 
-              className="w-full py-4 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white font-bold text-2xl rounded-2xl shadow-lg transition-transform active:scale-95"
-            >
-              בדוק אותי!
-            </button>
-
-            <SkipButton label="דלגו על התרגיל" className="mt-2" />
-          </div>
-        </div>
-
+        </section>
       </div>
+
+      <div className="mt-1.5 self-center"><SkipButton label="דלגו על התרגיל" /></div>
+    </>
+  );
+}
+
+interface LifelineProps {
+  problem: MathProblem;
+  blocks: BlockData[];
+  onToggle: (id: string) => void;
+}
+
+// The lifeline shows the exercise with blocks. The blocks shrink until everything fits;
+// at the smallest size the area scrolls. The area is positioned over its box, so the blocks
+// never stretch the page.
+function Lifeline(props: LifelineProps) {
+  const box = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(LIFELINE_SCALE);
+  useLayoutEffect(() => {
+    const element = box.current;
+    if (element && element.scrollHeight > element.clientHeight + 1 && scale > MIN_SCALE) {
+      setScale(Math.max(MIN_SCALE, Math.round((scale - 0.05) * 100) / 100));
+    }
+  });
+  return (
+    <>
+      <p className="text-center text-[15px] font-medium text-muted">גלגל הצלה</p>
+      <div className="relative mt-3 flex-1 min-h-0">
+        <div ref={box} className="absolute inset-0 overflow-y-auto overscroll-contain">
+          <LifelineBlocks {...props} scale={scale} />
+        </div>
+      </div>
+      <p className="mt-3 text-center text-[13px] text-muted">עם גלגל הצלה מקבלים חצי מהכוכבים</p>
+    </>
+  );
+}
+
+function LifelineBlocks({ problem, blocks, onToggle, scale }: LifelineProps & { scale: number }) {
+  const { num1, num2, operator } = problem;
+  const group = (id: number) => blocks.filter(block => block.groupId === id);
+
+  if (operator === '+') {
+    return (
+      <div dir="ltr" className="min-h-full flex items-center justify-center gap-3">
+        <BlockGroup blocks={group(1)} scale={scale} />
+        <span className="text-3xl font-bold text-accent-muted">+</span>
+        <BlockGroup blocks={group(2)} scale={scale} />
+      </div>
+    );
+  }
+
+  if (operator === '-') {
+    return (
+      <div className="flex flex-col items-center gap-2">
+        <p className="text-sm font-medium text-muted">החסירו {num2} קוביות (לחצו עליהן)</p>
+        <div dir="ltr" className="w-full p-3 rounded-2xl bg-place-unit-tint shadow-sunk flex flex-wrap justify-center items-end gap-1.5">
+          {blocks.map(block => (
+            <button key={block.id} type="button" onClick={() => onToggle(block.id)} aria-pressed={!!block.isGhosted}
+              aria-label={block.isGhosted ? 'החזרת הקובייה' : 'הורדת הקובייה'}
+              className={`-m-1 p-1 rounded-lg transition-opacity ${block.isGhosted ? 'opacity-25 grayscale' : ''}`}>
+              <Block type={block.type} scale={scale} />
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const groups = operator === '*' ? num1 : num2;
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <p className="text-sm font-medium text-muted">
+        {operator === '*' ? `יש כאן ${num1} קבוצות של ${num2}` : `חילקנו ${num1} ל-${num2} קבוצות שוות`}
+      </p>
+      <div dir="ltr" className={`w-full grid gap-1.5 ${GROUP_COLUMNS[Math.min(groups, 10)]}`}>
+        {Array.from({ length: groups }, (_, index) => <BlockGroup key={index} blocks={group(index + 1)} scale={scale} />)}
+      </div>
+    </div>
+  );
+}
+
+function BlockGroup({ blocks, scale }: { blocks: BlockData[]; scale: number }) {
+  return (
+    <div className="flex-1 p-2 rounded-xl bg-place-unit-tint shadow-sunk flex flex-wrap justify-center items-end gap-1">
+      {blocks.map(block => <Block key={block.id} type={block.type} scale={scale} />)}
     </div>
   );
 }

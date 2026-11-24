@@ -1,114 +1,78 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../store/useGameStore';
-import { MontessoriBlock } from './MontessoriBlock';
+import type { PlaceValue } from '../domain/types';
+import { Block, fitScale } from '../art/Block';
+import { useElementSize } from '../art/useElementSize';
+import { Guide, GuideText } from './Guide';
+import { AnswerSlot, NumberPad } from './NumberPad';
+import { CheckButton } from './CheckButton';
 import { SkipButton } from './SkipButton';
+import { WEB_SCALE } from './blocks';
 
+// Left to right, the way the number is written: thousands first.
+const ORDER: PlaceValue[] = ['thousand', 'hundred', 'ten', 'unit'];
+const COLUMNS = { 1: 'grid-cols-1', 2: 'grid-cols-2', 3: 'grid-cols-3', 4: 'grid-cols-4' } as const;
+const GAP = 8;
+const COLUMN_GAP = 16;
+
+// Recognize: count the blocks and type the number.
 export function RecognizeScreen() {
-  const store = useGameStore();
-  const [inputValue, setInputValue] = useState('');
+  const target = useGameStore(state => state.currentTargetNumber);
+  const placedBlocks = useGameStore(state => state.placedBlocks);
+  const interactionState = useGameStore(state => state.interactionState);
+  const feedbackMessage = useGameStore(state => state.feedbackMessage);
+  const lastReward = useGameStore(state => state.lastReward);
+  const checkRecognizeAnswer = useGameStore(state => state.checkRecognizeAnswer);
+  const [answer, setAnswer] = useState('');
+  const solved = interactionState === 'success';
 
-  // Clear input when the target number changes (new round)
-  useEffect(() => {
-    setInputValue('');
-  }, [store.currentTargetNumber]);
+  useEffect(() => { setAnswer(''); }, [target]);
+  const submit = useCallback(() => {
+    const value = parseInt(answer, 10);
+    if (!isNaN(value)) checkRecognizeAnswer(value);
+  }, [answer, checkRecognizeAnswer]);
 
-  const handleSubmit = () => {
-    const num = parseInt(inputValue, 10);
-    if (!isNaN(num)) {
-      store.checkRecognizeAnswer(num);
-    }
-  };
-
-  const unitsBlocks = store.placedBlocks.filter(b => b.type === 'unit');
-  const tensBlocks = store.placedBlocks.filter(b => b.type === 'ten');
-  const hundredsBlocks = store.placedBlocks.filter(b => b.type === 'hundred');
-  const thousandsBlocks = store.placedBlocks.filter(b => b.type === 'thousand');
+  const groups = ORDER
+    .map(type => ({ type, blocks: placedBlocks.filter(block => block.type === type) }))
+    .filter(group => group.blocks.length > 0);
+  const area = useRef<HTMLDivElement>(null);
+  const { width, height } = useElementSize(area);
+  const cellWidth = groups.length ? (width - COLUMN_GAP * (groups.length - 1)) / groups.length : 0;
 
   return (
-    <div className="h-full w-full pt-4 flex flex-col font-sans select-none bg-white overflow-hidden" dir="rtl">
-      <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full h-full">
-        
-        {/* Layer 1: Header - Strictly Fixed */}
-        <div className="text-center pt-2 sm:pt-4 pb-2 shrink-0 px-4">
-          <h1 className="text-2xl sm:text-5xl font-extrabold text-gray-800 mb-2">
-            איזה מספר כתוב כאן?
-          </h1>
-          
-          {store.interactionState === 'error' && store.feedbackMessage && (
-            <div className="mt-1 p-2 sm:p-4 max-w-lg mx-auto bg-orange-100 text-orange-800 rounded-xl border border-orange-200 shadow-sm animate-bounce">
-              <span className="font-bold text-sm sm:text-xl">{store.feedbackMessage}</span>
-            </div>
-          )}
+    <>
+      <Guide mood={solved ? 'happy' : interactionState === 'error' ? 'encourage' : 'asks'}>
+        <GuideText task="איזה מספר כתוב כאן?" state={interactionState} feedback={feedbackMessage} celebration="נכון מאוד!" reward={lastReward} />
+        <span dir="ltr" className="relative shrink-0 text-[clamp(36px,9vw,56px)] leading-none font-extrabold">
+          <AnswerSlot value={answer} correct={solved} />
+        </span>
+      </Guide>
 
-          {store.interactionState === 'success' && (
-            <div className="mt-1 p-2 sm:p-4 max-w-lg mx-auto bg-green-100 text-green-800 rounded-xl shadow-sm text-sm sm:text-2xl font-bold">
-              {store.feedbackMessage}
-            </div>
-          )}
-        </div>
-
-        {/* Layer 2: Blocks Area - The ONLY scrollable region */}
-        <div className="flex-1 min-h-0 overflow-y-auto px-2 sm:px-4 pb-4">
-          
-          <div 
-            dir="ltr" 
-            className="w-full flex flex-row gap-2 sm:gap-6 justify-center items-end bg-gray-50 p-4 sm:p-6 rounded-3xl border-2 border-gray-100 min-h-[150px]"
-          >
-            {/* Using flex-col-reverse and flex-wrap-reverse ensures that the "incomplete" 
-                rows or blocks are always placed at the top, mimicking physical building blocks. */}
-            
-            {thousandsBlocks.length > 0 && (
-              <div className="flex flex-col-reverse gap-2 items-center">
-                {thousandsBlocks.map(b => <MontessoriBlock key={b.id} id={b.id} type="thousand" />)}
-              </div>
-            )}
-            
-            {hundredsBlocks.length > 0 && (
-              <div className="flex flex-col-reverse gap-2 items-center">
-                {hundredsBlocks.map(b => <MontessoriBlock key={b.id} id={b.id} type="hundred" />)}
-              </div>
-            )}
-            
-            {tensBlocks.length > 0 && (
-              <div className="flex flex-row flex-wrap-reverse gap-1 justify-center content-start w-20 sm:w-28">
-                {tensBlocks.map(b => <MontessoriBlock key={b.id} id={b.id} type="ten" />)}
-              </div>
-            )}
-            
-            {unitsBlocks.length > 0 && (
-              <div className="flex flex-row flex-wrap-reverse gap-1 justify-center content-start w-16 sm:w-24">
-                {unitsBlocks.map(b => <MontessoriBlock key={b.id} id={b.id} type="unit" />)}
-              </div>
-            )}
+      {/* Blocks on the left and the pad on the right on a wide screen; blocks above the pad on a phone. */}
+      <div className="mt-[18px] flex flex-col sm:flex-row-reverse items-stretch gap-5">
+        <section aria-label="הקוביות" className="relative h-[260px] sm:h-auto sm:flex-1 rounded-3xl bg-card shadow-tray">
+          <div ref={area} dir="ltr"
+            className={`absolute inset-4 grid grid-rows-1 ${COLUMNS[Math.max(1, groups.length) as 1 | 2 | 3 | 4]} gap-4 overflow-y-auto overscroll-contain`}>
+            {groups.map(group => {
+              // Each place value fits its own column, so a full hundreds column never shrinks the units.
+              const scale = fitScale(group.type, group.blocks.length, cellWidth, height, GAP, 0.4, WEB_SCALE);
+              return (
+                <div key={group.type} className="flex flex-wrap justify-center content-end gap-2">
+                  {group.blocks.map(block => <Block key={block.id} type={block.type} scale={scale} />)}
+                </div>
+              );
+            })}
           </div>
-        </div>
+        </section>
 
-        {/* Layer 3: Input Area - Fixed at the bottom, elevated above scroll */}
-        <div className="shrink-0 bg-white border-t-2 border-gray-100 p-4 sm:p-6 z-20 shadow-[0_-10px_20px_rgba(0,0,0,0.02)]">
-          <div className="max-w-sm mx-auto flex flex-col gap-3">
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value.replace(/\D/g, ''))}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }}
-              disabled={store.interactionState === 'success'}
-              placeholder="התשובה היא..."
-              className="w-full text-center text-4xl sm:text-4xl font-black text-purple-700 bg-purple-50 border-4 border-purple-300 rounded-2xl py-3 focus:outline-none" 
-            />
-            
-            <button 
-              onClick={handleSubmit}
-              disabled={!inputValue || store.interactionState === 'success'}
-              className="w-full py-3 sm:py-4 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 text-white font-bold text-xl sm:text-2xl rounded-2xl shadow-lg transition-transform active:scale-95"
-            >
-              בדוק אותי!
-            </button>
-            <SkipButton label="דלגו על השלב" className="mt-2" />
-          </div>
+        <div className="sm:w-[340px] shrink-0 flex flex-col gap-2.5">
+          <NumberPad value={answer} onChange={setAnswer} onSubmit={submit} disabled={solved} />
+          <CheckButton onCheck={submit} canCheck={!!answer} nextLabel="השלב הבא מגיע…" />
+          <p className="text-center text-[13px] text-muted">אפשר גם להקליד במקלדת וללחוץ Enter</p>
         </div>
       </div>
-    </div>
+
+      <div className="mt-1.5 self-center"><SkipButton label="דלגו על השלב" /></div>
+    </>
   );
 }

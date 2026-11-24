@@ -10,7 +10,7 @@ const BLUSH = '#F4A9B8';
 
 interface Props {
   mood?: Mood;
-  size?: number;
+  size?: number | string; // a number of pixels, or e.g. '100%' to fill a sized box
   label?: string;
 }
 

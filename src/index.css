@@ -4,18 +4,46 @@
 @tailwind components;
 @tailwind utilities;
 
-html,
-body,
-#root {
-  height: 100%;
-}
-
 @layer base {
   body {
     user-select: none;
-    overflow: hidden;
-    overscroll-behavior-y: none;
+    overflow-x: hidden;
     -webkit-tap-highlight-color: transparent;
-    @apply bg-white text-gray-900 antialiased;
+    @apply bg-paper text-ink antialiased font-rubik;
   }
+
+  button {
+    touch-action: manipulation;
+  }
+
+  button:focus-visible,
+  [role="button"]:focus-visible {
+    outline: 3px solid theme(colors.accent.DEFAULT);
+    outline-offset: 3px;
+  }
+}
+
+/* Blocks on the shelf: no magnifier, callout or text selection while dragging. */
+.dnd-strict-lock {
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* The caret in the answer slot. */
+@keyframes caret-blink {
+  50% { opacity: 0; }
+}
+.caret-blink {
+  animation: caret-blink 1s steps(1) infinite;
+}
+
+/* "Next exercise" bar: fills during the 3-second pause after a correct answer. */
+@keyframes next-round {
+  from { width: 0; }
+  to { width: 100%; }
+}
+.next-round-bar {
+  animation: next-round 3s linear forwards;
 }

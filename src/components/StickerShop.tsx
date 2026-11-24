@@ -1,40 +1,53 @@
 import { useGameStore } from '../store/useGameStore';
 import { STICKER_CATALOG } from '../domain/stickers';
+import { CheckIcon, CloseIcon, StarIcon } from '../art/icons';
+import { palette } from '../art/palette';
 import { StarsCounter } from './StarsCounter';
+import { IconButton } from './IconButton';
 
-interface Props {
-  onClose: () => void;
-}
-
-export function StickerShop({ onClose }: Props) {
-  const unlockedStickers = useGameStore((state) => state.unlockedStickers);
-  const coinsCollected = useGameStore((state) => state.coinsCollected);
-  const buySticker = useGameStore((state) => state.buySticker);
+export function StickerShop({ onClose }: { onClose: () => void }) {
+  const unlockedStickers = useGameStore(state => state.unlockedStickers);
+  const coinsCollected = useGameStore(state => state.coinsCollected);
+  const buySticker = useGameStore(state => state.buySticker);
 
   return (
-    <div className="fixed inset-0 bg-pink-50 z-[100] flex flex-col font-sans select-none" dir="rtl">
-      
-      <div className="bg-white border-b-2 border-pink-200 p-2 flex justify-between items-center shrink-0 shadow-sm relative">
-        <div className="flex items-center"><StarsCounter /></div>
-        <div className="absolute left-1/2 -translate-x-1/2"><h2 className="text-lg sm:text-2xl font-extrabold text-pink-600">ספר המדבקות</h2></div>
-        <div className="flex items-center"><button onClick={onClose} className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors text-lg sm:text-xl font-bold text-gray-600">✕</button></div>
-      </div>
+    <div dir="rtl" className="fixed inset-0 z-[100] bg-paper overflow-y-auto overscroll-contain">
+      <div className="max-w-[960px] mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-10">
+        <header className="h-11 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+          <div className="flex"><StarsCounter /></div>
+          <h1 className="text-xl sm:text-2xl font-bold">ספר המדבקות</h1>
+          <div className="flex justify-end">
+            <IconButton label="סגירת ספר המדבקות" onClick={onClose}><CloseIcon color={palette.icon} /></IconButton>
+          </div>
+        </header>
 
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-        <div className="max-w-4xl mx-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 pb-20">
-          {STICKER_CATALOG.map((sticker) => {
-            const isUnlocked = unlockedStickers.includes(sticker.id);
-            const canAfford = coinsCollected >= sticker.cost;
-
+        <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
+          {STICKER_CATALOG.map(sticker => {
+            const owned = unlockedStickers.includes(sticker.id);
+            const missing = sticker.cost - coinsCollected;
             return (
-              <div key={sticker.id} className={`relative flex flex-col items-center p-4 rounded-3xl border-4 transition-all ${isUnlocked ? 'bg-white border-green-400 shadow-md scale-100' : 'bg-white border-pink-100 shadow-sm'}`}>
-                <div className="text-5xl sm:text-6xl mb-2 drop-shadow-sm">{isUnlocked ? sticker.emoji : <span className="opacity-40 grayscale">{sticker.emoji}</span>}</div>
-                <span className="font-bold text-gray-700 text-sm sm:text-base text-center mb-2">{sticker.name}</span>
-                {isUnlocked ? (
-                  <div className="mt-auto px-4 py-1 bg-green-100 text-green-700 font-bold rounded-full text-sm">שלי! ✅</div>
+              <div key={sticker.id}
+                className={`flex flex-col items-center gap-2 p-4 rounded-[22px] bg-card shadow-card ${owned ? 'ring-2 ring-success-line' : ''}`}>
+                <div className="w-20 h-20 rounded-full bg-halo flex items-center justify-center text-[48px]">
+                  <span className={owned ? '' : 'opacity-40 grayscale'}>{sticker.emoji}</span>
+                </div>
+                <p className="min-h-[2.5em] flex items-center text-center text-base font-bold leading-tight">{sticker.name}</p>
+                {owned ? (
+                  <span className="h-11 w-full rounded-[14px] bg-success-bg text-success-text font-bold flex items-center justify-center gap-1.5">
+                    <CheckIcon size={16} color={palette.success.text} />
+                    שלי!
+                  </span>
+                ) : missing <= 0 ? (
+                  <button type="button" onClick={() => buySticker(sticker.id, sticker.cost)} aria-label={`קנייה ב-${sticker.cost} כוכבים`}
+                    className="h-11 w-full rounded-[14px] bg-accent text-white font-bold flex items-center justify-center gap-1.5 shadow-press transition hover:brightness-110 active:translate-y-0.5">
+                    <span>{sticker.cost}</span>
+                    <StarIcon size={16} color="#FFD54A" />
+                  </button>
                 ) : (
-                  <button onClick={() => buySticker(sticker.id, sticker.cost)} disabled={!canAfford} className={`mt-auto px-4 py-2 rounded-full font-bold w-full flex items-center justify-center gap-1 transition-all ${canAfford ? 'bg-pink-500 hover:bg-pink-600 text-white active:scale-95 shadow-md cursor-pointer' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
-                    <span>{sticker.cost}</span><span className="text-xs">⭐</span>
+                  <button type="button" disabled aria-label={`עולה ${sticker.cost} כוכבים, חסרים עוד ${missing}`}
+                    className="h-11 w-full rounded-[14px] bg-track text-muted font-bold flex items-center justify-center gap-1.5">
+                    <span>עוד {missing}</span>
+                    <StarIcon size={16} color="#D9A400" />
                   </button>
                 )}
               </div>

@@ -15,13 +15,14 @@ export function blockSize(type: PlaceValue, scale = 1) {
   return { width: side, height: side };
 }
 
-// The largest scale, from full size down to `min`, at which `count` blocks wrapped in rows fit
-// a width × height box. Below `min` the blocks would be too small to count, so the box scrolls instead.
-export function fitScale(type: PlaceValue, count: number, width: number, height: number, gap = 6, min = 0.4) {
-  if (!count || !width || !height) return 1;
-  for (let scale = 1; scale > min; scale -= 0.05) {
+// The largest scale, from `max` down to `min`, at which `count` blocks wrapped in rows fit a
+// width × height box. Below `min` the blocks would be too small to count, so the box scrolls instead.
+export function fitScale(type: PlaceValue, count: number, width: number, height: number, gap = 6, min = 0.4, max = 1) {
+  if (!count || !width || !height) return max;
+  for (let scale = max; scale > min; scale -= 0.05) {
     const block = blockSize(type, scale);
-    const perRow = Math.max(1, Math.floor((width + gap) / (block.width + gap)));
+    // 1px of slack: the browser rounds block sizes, and a row that fits exactly on paper can wrap.
+    const perRow = Math.max(1, Math.floor((width - 1 + gap) / (block.width + gap)));
     const rows = Math.ceil(count / perRow);
     if (block.width <= width && rows * block.height + (rows - 1) * gap <= height) return scale;
   }
